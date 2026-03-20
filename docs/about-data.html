@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How the Data Works — GreenSpacesMap</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:      #1c1c1a;
+    --muted:    #6b6b64;
+    --rule:     #e4e2da;
+    --bg:       #faf9f6;
+    --card:     #ffffff;
+    --green:    #2d6a4f;
+    --green-lt: #d8f3dc;
+    --blue:     #1a3a6b;
+    --blue-lt:  #dce8fb;
+    --amber:    #b45309;
+    --amber-lt: #fef3c7;
+    --mono:     'DM Mono', monospace;
+    --serif:    'Lora', serif;
+    --sans:     'Outfit', sans-serif;
+    --radius:   8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.7;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    padding: 3rem 1.5rem 2rem;
+    border-bottom: 1px solid var(--rule);
+    animation: fadeUp .5s ease both;
+  }
+
+  .breadcrumb {
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.2rem;
+  }
+
+  .breadcrumb a {
+    color: var(--green);
+    text-decoration: none;
+  }
+
+  .page-header h1 {
+    font-family: var(--serif);
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: .75rem;
+  }
+
+  .page-header .lead {
+    color: var(--muted);
+    font-size: .95rem;
+    max-width: 520px;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  /* ── SECTION ── */
+  section {
+    padding: 2.5rem 0;
+    border-bottom: 1px solid var(--rule);
+    animation: fadeUp .5s ease both;
+  }
+
+  section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: .75rem;
+    line-height: 1.3;
+  }
+
+  p { margin-bottom: 1rem; color: #3a3a36; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--ink);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.25rem;
+    margin: 1.25rem 0;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-block pre {
+    font-family: var(--mono);
+    font-size: .78rem;
+    line-height: 1.7;
+    color: #c9d1d9;
+    white-space: pre;
+  }
+
+  .code-block .comment { color: #6e7681; }
+  .code-block .fn      { color: #79c0ff; }
+  .code-block .str     { color: #a5d6ff; }
+  .code-block .kw      { color: #ff7b72; }
+  .code-block .num     { color: #f2cc60; }
+
+  .code-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .08em;
+    color: #6e7681;
+    margin-bottom: .5rem;
+    display: block;
+  }
+
+  /* ── STEP CARDS ── */
+  .steps { display: flex; flex-direction: column; gap: 1rem; margin: 1.25rem 0; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: .75rem;
+    align-items: start;
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    transition: border-color .2s;
+  }
+
+  .step:hover { border-color: var(--green); }
+
+  .step-num {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: var(--green-lt);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: .75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: .1rem;
+  }
+
+  .step-title {
+    font-weight: 500;
+    font-size: .9rem;
+    margin-bottom: .25rem;
+    color: var(--ink);
+  }
+
+  .step-desc {
+    font-size: .85rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* ── DATA SOURCE CARDS ── */
+  .sources { display: flex; flex-direction: column; gap: .75rem; margin: 1.25rem 0; }
+
+  .source {
+    padding: 1.1rem 1.25rem;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--green);
+    border-radius: var(--radius);
+    transition: box-shadow .2s;
+  }
+
+  .source:nth-child(2) { border-left-color: var(--blue); }
+  .source:nth-child(3) { border-left-color: var(--amber); }
+  .source:nth-child(4) { border-left-color: #7c3aed; }
+
+  .source:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+
+  .source-name {
+    font-weight: 500;
+    font-size: .9rem;
+    margin-bottom: .2rem;
+  }
+
+  .source-meta {
+    font-size: .78rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: .5rem;
+  }
+
+  .source-desc {
+    font-size: .85rem;
+    color: #3a3a36;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .source-link {
+    display: inline-block;
+    margin-top: .6rem;
+    font-size: .75rem;
+    font-family: var(--mono);
+    color: var(--green);
+    text-decoration: none;
+    border-bottom: 1px solid var(--green-lt);
+    transition: border-color .2s;
+  }
+
+  .source-link:hover { border-color: var(--green); }
+
+  /* ── PACKAGE PILLS ── */
+  .packages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 1rem 0;
+  }
+
+  .pkg {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .75rem;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 99px;
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--ink);
+    transition: border-color .2s, background .2s;
+  }
+
+  .pkg:hover { border-color: var(--green); background: var(--green-lt); }
+
+  .pkg-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+
+  .pkg:nth-child(2) .pkg-dot { background: var(--blue); }
+  .pkg:nth-child(3) .pkg-dot { background: var(--amber); }
+  .pkg:nth-child(4) .pkg-dot { background: #7c3aed; }
+  .pkg:nth-child(5) .pkg-dot { background: #db2777; }
+
+  /* ── POSIT CALLOUT ── */
+  .callout {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .callout-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: #75aadb;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .callout-icon svg { width: 18px; height: 18px; fill: white; }
+
+  .callout-title {
+    font-weight: 500;
+    font-size: .9rem;
+    margin-bottom: .3rem;
+  }
+
+  .callout-body {
+    font-size: .85rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .callout-body a { color: var(--green); }
+
+  /* ── STAT ROW ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: .75rem;
+    margin: 1.25rem 0;
+  }
+
+  .stat {
+    padding: 1rem;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--green);
+    display: block;
+    line-height: 1;
+    margin-bottom: .3rem;
+  }
+
+  .stat-label {
+    font-size: .75rem;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+
+  /* ── ADA TABLE ── */
+  .ada-table { width: 100%; margin: 1.25rem 0; border-collapse: collapse; }
+
+  .ada-table th {
+    text-align: left;
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: .5rem .75rem;
+    border-bottom: 2px solid var(--rule);
+  }
+
+  .ada-table td {
+    padding: .65rem .75rem;
+    font-size: .85rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: middle;
+  }
+
+  .ada-table tr:last-child td { border-bottom: none; }
+
+  .ada-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .2rem .6rem;
+    border-radius: 99px;
+    font-size: .72rem;
+    font-weight: 500;
+  }
+
+  .ada-full    { background: #d8f3dc; color: #1b5e20; }
+  .ada-partial { background: #fef3c7; color: #78350f; }
+  .ada-none    { background: #fee2e2; color: #7f1d1d; }
+
+  .ada-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+  }
+
+  .ada-full .ada-dot    { background: #2d6a4f; }
+  .ada-partial .ada-dot { background: #b45309; }
+  .ada-none .ada-dot    { background: #dc2626; }
+
+  /* ── FOOTER NOTE ── */
+  .footnote {
+    margin-top: 2rem;
+    padding: 1.25rem;
+    background: var(--green-lt);
+    border-radius: var(--radius);
+    font-size: .82rem;
+    color: var(--green);
+    line-height: 1.6;
+  }
+
+  .footnote strong { font-weight: 500; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  section:nth-child(1) { animation-delay: .05s; }
+  section:nth-child(2) { animation-delay: .1s; }
+  section:nth-child(3) { animation-delay: .15s; }
+  section:nth-child(4) { animation-delay: .2s; }
+  section:nth-child(5) { animation-delay: .25s; }
+  section:nth-child(6) { animation-delay: .3s; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 400px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .code-block pre { font-size: .72rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <p class="breadcrumb"><a href="index.html">GreenSpacesMap</a> / About / How the data works</p>
+  <h1>How the data works</h1>
+  <p class="lead">A plain-English walkthrough of <code>01_download.R</code> — the script that fetches, cleans, and saves all the raw data powering this map.</p>
+</header>
+
+<main>
+
+  <!-- WHERE THE WORK HAPPENS -->
+  <section>
+    <p class="section-label">Environment</p>
+    <h2>Where the code runs</h2>
+    <p>All data preparation for GreenSpacesMap is written in <strong>R</strong> and runs inside <strong>Posit Cloud</strong> — a free, browser-based environment that requires no software installation. If you have a Chromebook, a tablet, or any device with a browser, you can run this code.</p>
+
+    <div class="callout">
+      <div class="callout-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+      </div>
+      <div>
+        <p class="callout-title">Posit Cloud (formerly RStudio Cloud)</p>
+        <p class="callout-body">Founded in 2009, Posit is a public benefit corporation committed to open source data science. Their cloud platform gives anyone access to a full R environment in the browser — no installation, no configuration. Free accounts are available at <a href="https://posit.cloud" target="_blank">posit.cloud</a>. The code for this project is forkable at <a href="https://github.com/jacobfarkas/GreenSpacesMap" target="_blank">github.com/jacobfarkas/GreenSpacesMap</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACKAGES -->
+  <section>
+    <p class="section-label">Dependencies</p>
+    <h2>R packages used</h2>
+    <p>The download script loads five packages. Each one does a specific job.</p>
+
+    <div class="packages">
+      <span class="pkg"><span class="pkg-dot"></span>tidyverse</span>
+      <span class="pkg"><span class="pkg-dot"></span>sf</span>
+      <span class="pkg"><span class="pkg-dot"></span>httr</span>
+      <span class="pkg"><span class="pkg-dot"></span>h3jsr</span>
+      <span class="pkg"><span class="pkg-dot"></span>janitor</span>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div>
+          <p class="step-title">tidyverse</p>
+          <p class="step-desc">A collection of R packages for data wrangling. Handles reading CSVs, filtering rows, transforming columns, and summarizing data. Think of it as R's general-purpose toolkit.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div>
+          <p class="step-title">sf — simple features</p>
+          <p class="step-desc">Makes R understand spatial data — points, lines, and polygons with real geographic coordinates. Without sf, a park is just a row in a table. With sf, it's a shape R can measure, map, and do math with.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div>
+          <p class="step-title">httr</p>
+          <p class="step-desc">Handles web requests — lets R talk to open data APIs the same way a browser loads a webpage, but programmatically. Used to verify API connectivity during development.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div>
+          <p class="step-title">h3jsr</p>
+          <p class="step-desc">R's interface to Uber's H3 hexagonal grid system. Generates the hex cells that cover NYC at resolution 9 — roughly one hexagon per city block — used in the scoring pipeline.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div>
+          <p class="step-title">janitor</p>
+          <p class="step-desc">Cleans messy column names. MTA data arrives with column names like "GTFS Latitude" (spaces, mixed case). janitor's clean_names() converts everything to snake_case so it's easier to work with in code.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <span class="code-label">01_download.R — package loading</span>
+      <pre><span class="kw">library</span>(<span class="str">tidyverse</span>)
+<span class="kw">library</span>(<span class="str">sf</span>)
+<span class="kw">library</span>(<span class="str">httr</span>)
+<span class="kw">library</span>(<span class="str">h3jsr</span>)
+<span class="kw">library</span>(<span class="str">janitor</span>)
+
+<span class="fn">dir.create</span>(<span class="str">"data-prep/raw"</span>, recursive = <span class="kw">TRUE</span>,
+           showWarnings = <span class="kw">FALSE</span>)</pre>
+    </div>
+  </section>
+
+  <!-- DATA SOURCES -->
+  <section>
+    <p class="section-label">Data sources</p>
+    <h2>What gets downloaded</h2>
+    <p>The script fetches four datasets from open government APIs. All are free, publicly licensed, and require no API key.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-num">262</span>
+        <span class="stat-label">Neighborhood tabulation areas</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">2,058</span>
+        <span class="stat-label">NYC park properties</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">496</span>
+        <span class="stat-label">Subway stations</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">13,572</span>
+        <span class="stat-label">Active bus stops</span>
+      </div>
+    </div>
+
+    <div class="sources">
+
+      <div class="source">
+        <p class="source-name">2020 Neighborhood Tabulation Areas (NTAs)</p>
+        <p class="source-meta">NYC Open Data · dataset 9nt8-h7nd · GeoJSON</p>
+        <p class="source-desc">The 262 neighborhood boundaries used to aggregate scores. Published by the NYC Department of City Planning, based on 2020 Census tracts. These are the polygons that get colored green, yellow, or red on the map.</p>
+        <a class="source-link" href="https://data.cityofnewyork.us/resource/9nt8-h7nd.geojson" target="_blank">data.cityofnewyork.us/resource/9nt8-h7nd.geojson</a>
+      </div>
+
+      <div class="source">
+        <p class="source-name">NYC Parks Properties</p>
+        <p class="source-meta">NYC Open Data · dataset enfh-gkve · CSV with WKT geometry</p>
+        <p class="source-desc">All 2,058 park properties managed by the NYC Department of Parks & Recreation. Each record includes the park name, borough, acreage, address, and a full polygon geometry stored as Well-Known Text (WKT). The geometry is converted to spatial format using sf.</p>
+        <a class="source-link" href="https://data.cityofnewyork.us/resource/enfh-gkve.csv" target="_blank">data.cityofnewyork.us/resource/enfh-gkve.csv</a>
+      </div>
+
+      <div class="source">
+        <p class="source-name">MTA Subway Stations</p>
+        <p class="source-meta">NY State Open Data · dataset 39hk-dx4f · CSV</p>
+        <p class="source-desc">All 496 subway and Staten Island Railway stations, published by the MTA. Includes station name, lines served, borough, GPS coordinates, and — critically — ADA accessibility status coded as 0 (not accessible), 1 (fully accessible), or 2 (partially accessible, one direction only).</p>
+        <a class="source-link" href="https://data.ny.gov/api/views/39hk-dx4f/rows.csv" target="_blank">data.ny.gov/api/views/39hk-dx4f/rows.csv</a>
+      </div>
+
+      <div class="source">
+        <p class="source-name">MTA Current Bus Stops</p>
+        <p class="source-meta">NY State Open Data · dataset ai5j-txmn · CSV</p>
+        <p class="source-desc">All active MTA bus stops across NYC. The raw dataset has 22,977 rows — one per route per stop — so stops served by multiple routes appear multiple times. The script deduplicates to 13,572 unique physical locations and filters to revenue stops only (active stops where passengers board and alight). All bus stops are step-free by design.</p>
+        <a class="source-link" href="https://data.ny.gov/api/views/ai5j-txmn/rows.csv" target="_blank">data.ny.gov/api/views/ai5j-txmn/rows.csv</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ADA BREAKDOWN -->
+  <section>
+    <p class="section-label">Accessibility</p>
+    <h2>The subway accessibility data</h2>
+    <p>The MTA's ADA field uses a three-value numeric code. The script translates these into human-readable labels used throughout the map and the AI-generated stories.</p>
+
+    <table class="ada-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Label</th>
+          <th>Count</th>
+          <th>What it means</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>1</code></td>
+          <td><span class="ada-badge ada-full"><span class="ada-dot"></span>Fully accessible</span></td>
+          <td>159</td>
+          <td style="font-size:.82rem;color:var(--muted)">Step-free access in both directions via elevator</td>
+        </tr>
+        <tr>
+          <td><code>2</code></td>
+          <td><span class="ada-badge ada-partial"><span class="ada-dot"></span>Partially accessible</span></td>
+          <td>8</td>
+          <td style="font-size:.82rem;color:var(--muted)">Accessible in one direction only (noted in ADA Direction Notes)</td>
+        </tr>
+        <tr>
+          <td><code>0</code></td>
+          <td><span class="ada-badge ada-none"><span class="ada-dot"></span>Not accessible</span></td>
+          <td>329</td>
+          <td style="font-size:.82rem;color:var(--muted)">No step-free path from street to platform</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>Only 32% of NYC subway stations are fully accessible — a figure that shapes the equity analysis at the core of this project. Bus stops, by contrast, are all step-free.</p>
+  </section>
+
+  <!-- WHAT GETS SAVED -->
+  <section>
+    <p class="section-label">Output</p>
+    <h2>What the script produces</h2>
+    <p>Each dataset is saved as a <strong>GeoJSON</strong> file in <code>data-prep/raw/</code>. GeoJSON is an open, human-readable format for geographic data — it can be opened in any mapping tool, inspected in a text editor, and read directly by Leaflet.js in the browser.</p>
+
+    <div class="code-block">
+      <span class="code-label">Files created by 01_download.R</span>
+      <pre>data-prep/raw/
+├── nta.geojson         <span class="comment"># 262 neighborhood boundaries</span>
+├── parks.geojson       <span class="comment"># 2,058 park polygons</span>
+├── subway.geojson      <span class="comment"># 496 stations + ADA status</span>
+└── bus_stops.geojson   <span class="comment"># 13,572 active stop locations</span></pre>
+    </div>
+
+    <p>These files are committed to the GitHub repository and serve as the input for <code>02_score.R</code>, which generates the H3 hexagon grid and calculates park access scores for every neighborhood.</p>
+  </section>
+
+  <!-- REPRODUCE -->
+  <section>
+    <p class="section-label">Reproducibility</p>
+    <h2>Run this yourself</h2>
+    <p>The entire data pipeline is open source and reproducible. No API keys, no paid accounts, no proprietary software required.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <p class="step-title">Create a free Posit Cloud account</p>
+          <p class="step-desc">Go to posit.cloud and sign up. No credit card required.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <p class="step-title">Fork the repository</p>
+          <p class="step-desc">Visit github.com/jacobfarkas/GreenSpacesMap and click Fork. This creates your own copy of the project.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <p class="step-title">Open in Posit Cloud</p>
+          <p class="step-desc">Create a new project from your forked GitHub repo. Posit Cloud will pull in all the files automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <p class="step-title">Install packages and run</p>
+          <p class="step-desc">Install the five packages listed above, then run 01_download.R. The four GeoJSON files will appear in data-prep/raw/ within a few minutes.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <strong>All data is public domain.</strong> The NYC Open Data and NY State Open Data portals publish datasets under open licenses. The MTA subway and bus data is free to use for non-commercial purposes under the MTA's developer terms. No attribution beyond this page is required to use the data, but crediting the original sources is appreciated.
+    </div>
+  </section>
+
+</main>
+
+</body>
+</html>
