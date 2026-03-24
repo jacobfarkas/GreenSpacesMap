@@ -272,8 +272,9 @@ body {
    ============================================================================= */
 .legend {
   position: absolute;
-  top: 280px;
+  bottom: 80px;
   left: 12px;
+  top: auto;
   z-index: 500;
   background: #e8f5eb;
   padding: 10px 14px;
@@ -559,6 +560,11 @@ body {
   .legend            { font-size: 12px; }
   .legend-item       { font-size: 12px; }
   .legend-swatch     { width: 16px; height: 16px; }
+
+   legend {
+    bottom: auto;
+    top: 280px;
+  }
 
   /* Hide mobile layers button */
   .layers-btn { display: none; }
