@@ -186,7 +186,6 @@ function golfPopup(p) {
 fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
-
     // Store reference so we can re-style on hex toggle
     ntaGeoJSON = L.geoJSON(data, {
       style: function(f) {
@@ -197,6 +196,11 @@ fetch('data/nta_scores.geojson')
         layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(ntaLayer);
+
+    // Force redraw to ensure NTA renders on initial load
+    setTimeout(function() {
+      ntaGeoJSON.setStyle(ntaStyleOutline());
+    }, 100);
 
     // 2. Hex scores
     return fetch('data/hex_scores_parks.geojson');
