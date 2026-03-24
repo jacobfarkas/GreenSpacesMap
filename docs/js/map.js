@@ -9,10 +9,10 @@
 //   4. Golf courses     — excluded from scoring, pale green overlay
 //
 // Data files (relative to docs/):
-//   ../data-prep/processed/nta_scores.geojson
-//   ../data-prep/processed/hex_scores_parks.geojson
-//   ../data-prep/processed/parks_display.geojson
-//   ../data-prep/raw/golf_courses.geojson
+//   data/nta_scores.geojson
+//   data/hex_scores_parks.geojson
+//   data/parks_display.geojson
+//   data/golf_courses.geojson
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -117,7 +117,7 @@ function golfPopup(p) {
 // -----------------------------------------------------------------------------
 
 // 1. NTA scores - neighborhood level, semi-transparent fill
-fetch('../data-prep/processed/nta_scores.geojson')
+fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
@@ -137,7 +137,7 @@ fetch('../data-prep/processed/nta_scores.geojson')
     }).addTo(ntaLayer);
 
     // 2. Hex scores - cell level, on top of NTA
-    return fetch('../data-prep/processed/hex_scores_parks.geojson');
+    return fetch('data/hex_scores_parks.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -158,7 +158,7 @@ fetch('../data-prep/processed/nta_scores.geojson')
     }).addTo(hexLayer);
 
     // 3. Parks display - solid dark green, on top of hex
-    return fetch('../data-prep/processed/parks_display.geojson');
+    return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -176,7 +176,7 @@ fetch('../data-prep/processed/nta_scores.geojson')
     }).addTo(parksLayer);
 
     // 4. Golf courses - pale green overlay, on top of parks
-    return fetch('../data-prep/raw/golf_courses.geojson');
+    return fetch('data/golf_courses.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
