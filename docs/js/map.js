@@ -18,8 +18,8 @@
 //   parkCellMap          -> in-memory lookup of park name to cell index
 //
 // NTA layer behavior:
-//   - When hex layer is visible: NTA shows white outline only (no fill)
-//   - When hex layer is hidden: NTA shows grade color fill
+//   - When hex layer is visible: NTA shows white outline only, non-interactive
+//   - When hex layer is hidden: NTA shows grade color fill, interactive
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -74,8 +74,8 @@ var ntaGeoJSON = null;
 function ntaStyleOutline() {
   return {
     fillColor:   '#000000',
-    fillOpacity: 0,           // no fill - transparent
-    color:       '#ffffff',   // white outline
+    fillOpacity: 0,
+    color:       '#ffffff',
     weight:      1.5,
     opacity:     0.8
   };
@@ -96,9 +96,13 @@ function updateNtaStyle() {
   ntaGeoJSON.eachLayer(function(layer) {
     if (hexVisible) {
       layer.setStyle(ntaStyleOutline());
+      layer.options.interactive = false;
+      layer.off('click');
     } else {
       var grade = layer.feature.properties.grade;
       layer.setStyle(ntaStyleColored(grade));
+      layer.options.interactive = true;
+      layer.on('click', function(e) { layer.openPopup(); });
     }
   });
 }
@@ -180,27 +184,23 @@ function golfPopup(p) {
 
 // -----------------------------------------------------------------------------
 // Data loading
+// NTA loads first but non-interactive, hex loads second and forces NTA redraw
 // -----------------------------------------------------------------------------
 
-// 1. NTA scores
+// 1. NTA scores - non-interactive on load since hex will be visible
 fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
-    // Store reference so we can re-style on hex toggle
+
     ntaGeoJSON = L.geoJSON(data, {
       style: function(f) {
-        // Initial style - outline only since hex is visible on load
         return ntaStyleOutline();
       },
+      interactive: false,
       onEachFeature: function(f, layer) {
         layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(ntaLayer);
-
-    // Force redraw to ensure NTA renders on initial load
-    setTimeout(function() {
-      ntaGeoJSON.setStyle(ntaStyleOutline());
-    }, 500);
 
     // 2. Hex scores
     return fetch('data/hex_scores_parks.geojson');
@@ -224,6 +224,11 @@ fetch('data/nta_scores.geojson')
         layer.bindPopup(hexPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(hexLayer);
+
+    // Force NTA redraw after hex is loaded so white outlines are visible
+    setTimeout(function() {
+      if (ntaGeoJSON) ntaGeoJSON.setStyle(ntaStyleOutline());
+    }, 100);
 
     // 3. Parks display
     return fetch('data/parks_display.geojson');
@@ -270,7 +275,7 @@ fetch('data/nta_scores.geojson')
 
 // -----------------------------------------------------------------------------
 // Layer toggle event listeners
-// NTA style switches based on hex visibility
+// NTA style and interactivity switches based on hex visibility
 // -----------------------------------------------------------------------------
 document.getElementById('toggle-nta').addEventListener('change', function() {
   if (this.checked) {
@@ -288,7 +293,6 @@ document.getElementById('toggle-hex').addEventListener('change', function() {
     hexVisible = false;
     map.removeLayer(hexLayer);
   }
-  // Update NTA style to reflect new hex visibility
   updateNtaStyle();
 });
 
