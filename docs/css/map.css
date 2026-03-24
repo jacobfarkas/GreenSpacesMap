@@ -501,6 +501,21 @@ body {
 }
 
 /* =============================================================================
+   Park link in result card
+   ============================================================================= */
+.park-link {
+  color: #2d6a4f;
+  font-weight: 500;
+  font-size: 13px;
+  text-decoration: none;
+  display: block;
+}
+
+.park-link:hover {
+  text-decoration: underline;
+}
+
+/* =============================================================================
    Leaflet overrides
    ============================================================================= */
 .leaflet-popup-content-wrapper {
