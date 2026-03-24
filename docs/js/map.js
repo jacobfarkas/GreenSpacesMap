@@ -121,7 +121,7 @@ function golfPopup(p) {
 // -----------------------------------------------------------------------------
 
 // 1. NTA scores
-fetch('../data-prep/processed/nta_scores.geojson')
+fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
@@ -141,7 +141,7 @@ fetch('../data-prep/processed/nta_scores.geojson')
     }).addTo(ntaLayer);
 
     // 2. Hex scores
-    return fetch('../data-prep/processed/hex_scores_parks.geojson');
+    return fetch('data/hex_scores_parks.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -165,7 +165,7 @@ fetch('../data-prep/processed/nta_scores.geojson')
     }).addTo(hexLayer);
 
     // 3. Parks display
-    return fetch('../data-prep/processed/parks_display.geojson');
+    return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -183,7 +183,7 @@ fetch('../data-prep/processed/nta_scores.geojson')
     }).addTo(parksLayer);
 
     // 4. Golf courses
-    return fetch('../data-prep/raw/golf_courses.geojson');
+    return fetch('data/golf_courses.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
