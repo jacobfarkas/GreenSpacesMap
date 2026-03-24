@@ -600,6 +600,43 @@ body {
     height: 16px;
   }
 
+   /* =============================================================================
+   Mode switcher bar
+   ============================================================================= */
+.mode-bar {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.mode-btn {
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #555;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+  color: #ffffff;
+}
+
+.mode-btn:hover:not(.active) {
+  border-color: #2d6a4f;
+  color: #2d6a4f;
+}
+
   /* Result card as dropdown below search on desktop */
   .result-card {
     bottom: auto;
