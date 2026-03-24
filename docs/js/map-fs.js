@@ -222,19 +222,39 @@ fetch('data/nta_scores_flagship_walk.geojson')
     }).addTo(hexLayer);
 
     // 3. Parks display
-    return fetch('data/parks_display.geojson');
+    // 3. All parks - dark green, no gold border
+return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
     L.geoJSON(data, {
       style: {
-  fillColor:   '#2d6a4f',
-  fillOpacity: 0.9,
-  color:       '#d4a017',  // gold border
-  weight:      2.5,
-  pane:        'parksPane'
-},
+        fillColor:   '#2d6a4f',
+        fillOpacity: 0.85,
+        color:       '#1a3d2b',
+        weight:      1,
+        pane:        'parksPane'
+      },
+      onEachFeature: function(f, layer) {
+        layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
+      }
+    }).addTo(parksLayer);
+
+    // 3b. Flagship parks - gold border on top
+    return fetch('data/flagship_display.geojson');
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+
+    L.geoJSON(data, {
+      style: {
+        fillColor:   '#2d6a4f',
+        fillOpacity: 0.9,
+        color:       '#d4a017',
+        weight:      2.5,
+        pane:        'parksPane'
+      },
       onEachFeature: function(f, layer) {
         layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
       }
