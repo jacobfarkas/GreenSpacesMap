@@ -45,9 +45,9 @@ var map = L.map('map', {
 map.createPane('parksPane');
 map.getPane('parksPane').style.zIndex = 450;
 
-// Custom pane for NTA - visible but no pointer events when hex is on
+// Custom pane for NTA - renders above hex (overlayPane=400) so outlines are visible
 map.createPane('ntaPane');
-map.getPane('ntaPane').style.zIndex = 250;
+map.getPane('ntaPane').style.zIndex = 401;
 map.getPane('ntaPane').style.pointerEvents = 'none';
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
