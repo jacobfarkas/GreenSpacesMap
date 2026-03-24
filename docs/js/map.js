@@ -8,10 +8,11 @@
 // Data pipeline:
 //   01_download.R        -> raw data
 //   01b_osm_parks.R      -> parks_unified.geojson
+//   01c_tree_filter.R    -> parks_unified_filtered.geojson
 //   02_score.R           -> hex_scores_parks.geojson, nta_scores.geojson
 //
 // Address search tech stack:
-//   NYC GeoSearch API    -> geocodes address to lat/lng
+//   NYC GeoSearch API v2 -> geocodes address to lat/lng
 //   H3 JS library        -> converts lat/lng to H3 res 10 cell index
 //   hexFeatureMap        -> in-memory lookup of cell index to score data
 //   parkCellMap          -> in-memory lookup of park name to cell index
@@ -40,6 +41,11 @@ var map = L.map('map', {
   tap:          true,
   tapTolerance: 15
 });
+
+// Create custom pane for parks so they always render above hex cells
+// regardless of layer toggle order
+map.createPane('parksPane');
+map.getPane('parksPane').style.zIndex = 450;
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
@@ -138,6 +144,7 @@ function golfPopup(p) {
 // Data loading
 // Layers chained to render in correct order:
 // NTA (bottom) -> Hex -> Parks -> Golf courses (top)
+// Parks and golf courses use parksPane to stay above hex on toggle
 // -----------------------------------------------------------------------------
 
 // 1. NTA scores - neighborhood level, semi-transparent fill
@@ -184,7 +191,7 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(hexLayer);
 
-    // 3. Parks display - solid dark green, on top of hex
+    // 3. Parks display - solid dark green, rendered in parksPane
     return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -195,14 +202,15 @@ fetch('data/nta_scores.geojson')
         fillColor:   '#2d6a4f',
         fillOpacity: 0.85,
         color:       '#1a3d2b',
-        weight:      1
+        weight:      1,
+        pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
         layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(parksLayer);
 
-    // 4. Golf courses - pale green overlay, on top of parks
+    // 4. Golf courses - pale green overlay, also in parksPane
     return fetch('data/golf_courses.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -213,7 +221,8 @@ fetch('data/nta_scores.geojson')
         fillColor:   '#c8e6c9',
         fillOpacity: 0.7,
         color:       '#a5d6a7',
-        weight:      0.5
+        weight:      0.5,
+        pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
         layer.bindPopup(golfPopup(f.properties), { maxWidth: 280 });
