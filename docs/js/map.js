@@ -14,6 +14,7 @@
 //   NYC GeoSearch API    -> geocodes address to lat/lng
 //   H3 JS library        -> converts lat/lng to H3 res 10 cell index
 //   hexFeatureMap        -> in-memory lookup of cell index to score data
+//   parkCellMap          -> in-memory lookup of park name to cell index
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -30,6 +31,7 @@ var GRADE_COLORS = {
 
 // -----------------------------------------------------------------------------
 // Map initialisation
+// Center on NYC, zoom to show all 5 boroughs
 // -----------------------------------------------------------------------------
 var map = L.map('map', {
   center:       [40.7484, -73.9857],
@@ -47,24 +49,35 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 // -----------------------------------------------------------------------------
 // Layer groups
+// Defined separately so layer toggles can add/remove them independently
 // -----------------------------------------------------------------------------
 var ntaLayer   = L.layerGroup().addTo(map);
 var hexLayer   = L.layerGroup().addTo(map);
 var parksLayer = L.layerGroup().addTo(map);
 
 // -----------------------------------------------------------------------------
-// In-memory lookup: h3_index -> feature properties
-// Built when hex GeoJSON loads, used by address search
+// In-memory lookups built when hex GeoJSON loads
+// hexFeatureMap: h3_index -> feature properties (used for address search)
+// parkCellMap:   park name -> first cell index at hops 0 or 1 (used for park link)
 // -----------------------------------------------------------------------------
 var hexFeatureMap = {};
+var parkCellMap   = {};
 
 function buildHexLookup(data) {
   data.features.forEach(function(f) {
     if (f.properties && f.properties.h3_index) {
       hexFeatureMap[f.properties.h3_index] = f.properties;
+
+      // Store first cell found for each park at hops 0 or 1
+      var pName = f.properties.nearest_park;
+      var hops  = f.properties.hops;
+      if (pName && (hops === 0 || hops === 1) && !parkCellMap[pName]) {
+        parkCellMap[pName] = f.properties.h3_index;
+      }
     }
   });
   console.log('H3 lookup map built:', Object.keys(hexFeatureMap).length, 'cells');
+  console.log('Park cell map built:', Object.keys(parkCellMap).length, 'parks');
 }
 
 // -----------------------------------------------------------------------------
@@ -120,8 +133,8 @@ function golfPopup(p) {
 // NTA (bottom) -> Hex -> Parks -> Golf courses (top)
 // -----------------------------------------------------------------------------
 
-// 1. NTA scores
-fetch('data/nta_scores.geojson')
+// 1. NTA scores - neighborhood level, semi-transparent fill
+fetch('../data-prep/processed/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
@@ -140,13 +153,13 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(ntaLayer);
 
-    // 2. Hex scores
-    return fetch('data/hex_scores_parks.geojson');
+    // 2. Hex scores - cell level, on top of NTA
+    return fetch('../data-prep/processed/hex_scores_parks.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
-    // Build lookup map for address search
+    // Build lookup maps for address search and park links
     buildHexLookup(data);
 
     L.geoJSON(data, {
@@ -164,8 +177,8 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(hexLayer);
 
-    // 3. Parks display
-    return fetch('data/parks_display.geojson');
+    // 3. Parks display - solid dark green, on top of hex
+    return fetch('../data-prep/processed/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -182,8 +195,8 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(parksLayer);
 
-    // 4. Golf courses
-    return fetch('data/golf_courses.geojson');
+    // 4. Golf courses - pale green overlay, on top of parks
+    return fetch('../data-prep/raw/golf_courses.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -243,9 +256,37 @@ layersClose.addEventListener('click', closeLayers);
 layersOverlay.addEventListener('click', closeLayers);
 
 // -----------------------------------------------------------------------------
+// Pan to H3 cell and open its popup
+// Used by park link in result card and green dot marker click
+// -----------------------------------------------------------------------------
+function panToCell(cellIndex) {
+  var props = hexFeatureMap[cellIndex];
+  if (!props) return;
+
+  // Get cell center lat/lng using H3 JS
+  var center = h3.cellToLatLng(cellIndex);
+  var lat    = center[0];
+  var lng    = center[1];
+
+  map.setView([lat, lng], 16);
+
+  // Find the Leaflet layer for this cell and open its popup
+  hexLayer.eachLayer(function(layer) {
+    if (layer.eachLayer) {
+      layer.eachLayer(function(sublayer) {
+        if (sublayer.feature &&
+            sublayer.feature.properties.h3_index === cellIndex) {
+          sublayer.openPopup();
+        }
+      });
+    }
+  });
+}
+
+// -----------------------------------------------------------------------------
 // Address search
-// Uses NYC GeoSearch API for autocomplete and geocoding
-// Converts lat/lng to H3 cell using h3-js library
+// Uses NYC GeoSearch API v2 for autocomplete
+// Converts lat/lng to H3 cell using h3-js
 // Looks up score from hexFeatureMap built at load time
 // -----------------------------------------------------------------------------
 var searchInput    = document.getElementById('search-input');
@@ -255,16 +296,17 @@ var resultCard     = document.getElementById('result-card');
 var searchMarker   = null;
 var searchDebounce = null;
 
-// Geocode address using NYC Planning GeoSearch API
+// Geocode address using NYC Planning GeoSearch API v2
 function geocodeAddress(address) {
   var url = 'https://geosearch.planninglabs.nyc/v2/autocomplete?text=' +
     encodeURIComponent(address) + '&size=5';
+
   return fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(data) { return data.features || []; });
 }
 
-// Render autocomplete suggestions
+// Render autocomplete suggestions in dropdown
 function showSuggestions(features) {
   searchDropdown.innerHTML = '';
 
@@ -321,11 +363,10 @@ function selectResult(feature) {
   map.setView([lat, lng], 16);
 
   // Remove previous search marker
-  if (searchMarker) {
-    map.removeLayer(searchMarker);
-  }
+  if (searchMarker) { map.removeLayer(searchMarker); }
 
   // Place marker at searched address
+  // Clicking the marker opens the hex cell popup
   searchMarker = L.circleMarker([lat, lng], {
     radius:      8,
     fillColor:   '#2d6a4f',
@@ -334,7 +375,10 @@ function selectResult(feature) {
     weight:      2
   }).addTo(map);
 
-  // Show result card
+  searchMarker.on('click', function() {
+    panToCell(cellIndex);
+  });
+
   showResultCard(label, props);
 }
 
@@ -348,13 +392,34 @@ function showResultCard(address, props) {
   document.getElementById('result-nta').textContent     = subAddr;
 
   if (props) {
-    document.getElementById('result-park').textContent  = '🌳 ' + (props.nearest_park || 'Nearby park');
+    var parkName = props.nearest_park || 'Nearby park';
+    var parkCell = parkCellMap[parkName];
+
+    // Park label + clickable link
+    var parkEl = document.getElementById('result-park');
+    parkEl.innerHTML =
+      '<span style="font-size:11px;color:#888;display:block;margin-bottom:2px">' +
+        'Closest park nearby' +
+      '</span>' +
+      '<a href="#" class="park-link" data-cell="' + (parkCell || '') + '">' +
+        '🌳 ' + parkName +
+      '</a>';
+
+    // Attach click handler to park link
+    var parkLink = parkEl.querySelector('.park-link');
+    if (parkLink && parkCell) {
+      parkLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        panToCell(parkCell);
+      });
+    }
+
     document.getElementById('result-walk').textContent  = '~' + (props.walk_mins || '') + ' min walk';
     document.getElementById('result-grade').textContent = props.grade || '';
-    document.getElementById('result-grade').style.color =
-      GRADE_COLORS[props.grade] || '#1c1c1a';
+    document.getElementById('result-grade').style.color = GRADE_COLORS[props.grade] || '#1c1c1a';
+
   } else {
-    document.getElementById('result-park').textContent  = 'No score data for this location';
+    document.getElementById('result-park').innerHTML    = 'No score data for this location';
     document.getElementById('result-walk').textContent  = '';
     document.getElementById('result-grade').textContent = '';
   }
@@ -379,7 +444,7 @@ searchInput.addEventListener('input', function() {
   }, 300);
 });
 
-// Clear search
+// Clear search - reset all search state
 searchClear.addEventListener('click', function() {
   searchInput.value = '';
   searchClear.style.display = 'none';
@@ -391,11 +456,12 @@ searchClear.addEventListener('click', function() {
   }
 });
 
-// Close dropdown on map interaction
+// Close dropdown on map click
 map.on('click', function() {
   searchDropdown.classList.remove('active');
 });
 
+// Close result card and dropdown on map drag
 map.on('dragstart', function() {
   resultCard.classList.remove('open');
   searchDropdown.classList.remove('active');
