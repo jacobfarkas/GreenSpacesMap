@@ -1,0 +1,443 @@
+/* =============================================================================
+   map.css
+   Styles for GreenSpacesMap — NYC Park Access
+   Mobile-first, responsive across iPhone, Android, iPad, and desktop
+   ============================================================================= */
+
+/* Base reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #fff;
+  overflow: hidden;
+}
+
+/* Full viewport map */
+#map {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* =============================================================================
+   Title / Banner
+   ============================================================================= */
+.map-title {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  background: #d8f3dc;
+  padding: 20px 22px;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 200px);
+}
+
+.map-title-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a3d2b;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.title-green {
+  color: #2d6a4f;
+}
+
+.title-spaces {
+  color: #2d6a4f;
+  opacity: 0.85;
+}
+
+.title-map {
+  color: #1a3d2b;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.map-title-sub {
+  font-size: 12px;
+  color: #2d6a4f;
+  font-weight: 400;
+  margin-top: 6px;
+  letter-spacing: 0.01em;
+}
+
+@media (min-width: 768px) {
+  .map-title-heading { font-size: 22px; }
+  .map-title-sub     { font-size: 13px; }
+}
+
+@media (max-height: 500px) {
+  .map-title         { padding: 10px 14px; }
+  .map-title-icon    { font-size: 24px; }
+  .map-title-heading { font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+  .map-title         { padding: 14px 14px; gap: 10px; }
+  .map-title-icon    { font-size: 28px; }
+  .map-title-heading { font-size: 17px; }
+  .map-title-sub     { font-size: 11px; }
+}
+
+/* =============================================================================
+   Layer toggle
+   ============================================================================= */
+/* =============================================================================
+   Layers button (mobile only)
+   ============================================================================= */
+.layers-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c1c1a;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.layers-btn:active {
+  background: #f5f5f3;
+}
+
+/* =============================================================================
+   Bottom sheet overlay (mobile)
+   ============================================================================= */
+.layers-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 1001;
+}
+
+.layers-overlay.active {
+  display: block;
+}
+
+/* =============================================================================
+   Layers panel — bottom sheet on mobile, side panel on desktop
+   ============================================================================= */
+.layers-panel {
+  position: fixed;
+  z-index: 1002;
+  background: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Mobile: bottom sheet */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 16px 16px 0 0;
+  padding: 0 0 32px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.layers-panel.open {
+  transform: translateY(0);
+}
+
+.layers-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f0f0ec;
+}
+
+.layers-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1a;
+}
+
+.layers-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.layers-close:active {
+  background: #f5f5f3;
+}
+
+.layers-panel-body {
+  padding: 8px 20px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0ec;
+  cursor: pointer;
+}
+
+.layer-item:last-child {
+  border-bottom: none;
+}
+
+.layer-item input[type=checkbox] {
+  accent-color: #2d6a4f;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.layer-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layer-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1c1c1a;
+}
+
+.layer-desc {
+  font-size: 11px;
+  color: #888;
+}
+
+/* =============================================================================
+   Desktop: side panel instead of bottom sheet
+   ============================================================================= */
+@media (min-width: 768px) {
+
+  /* Hide mobile button */
+  .layers-btn { display: none; }
+
+  /* Hide overlay */
+  .layers-overlay { display: none !important; }
+
+  /* Side panel - always visible */
+  .layers-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: auto;
+    left: auto;
+    width: 220px;
+    border-radius: 10px;
+    padding: 0;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.12);
+    transform: none !important;
+    transition: none;
+  }
+
+  .layers-panel-header {
+    padding: 12px 14px 10px;
+  }
+
+  .layers-panel-title {
+    font-size: 13px;
+  }
+
+  /* Hide close button on desktop */
+  .layers-close { display: none; }
+
+  .layers-panel-body {
+    padding: 4px 14px 8px;
+  }
+
+  .layer-item {
+    padding: 8px 0;
+    gap: 10px;
+  }
+
+  .layer-name  { font-size: 13px; }
+  .layer-desc  { font-size: 11px; }
+
+  .layer-item input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* =============================================================================
+   Legend
+   ============================================================================= */
+.legend {
+  position: absolute;
+  top: 210px;
+  left: 12px;
+  z-index: 1000;
+  background: #e8f5eb;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+  font-size: 12px;
+}
+
+.legend-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #1a3d2b;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+  color: #1a3d2b;
+  font-size: 11px;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+/* =============================================================================
+   Popups
+   ============================================================================= */
+
+/* Shared popup base */
+.park-popup,
+.parks-popup,
+.nta-popup {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 2px;
+}
+
+.park-popup  { min-width: 180px; }
+.parks-popup { min-width: 160px; }
+.nta-popup   { min-width: 180px; }
+
+/* Popup headings */
+.park-popup .park-name,
+.parks-popup .park-name,
+.nta-popup .nta-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1c1c1a;
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+
+/* Popup body text */
+.park-popup .nta-name,
+.park-popup .walk-time,
+.parks-popup .park-meta,
+.nta-popup .nta-meta {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 3px;
+  line-height: 1.4;
+}
+
+/* Cell ID monospace */
+.park-popup .cell-id {
+  font-size: 10px;
+  color: #888;
+  font-family: monospace;
+  margin-bottom: 3px;
+}
+
+.park-popup .walk-time {
+  margin-bottom: 8px;
+}
+
+/* Grade display */
+.park-popup .grade,
+.nta-popup .nta-grade {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1c1c1a;
+  margin-top: 6px;
+}
+
+/* =============================================================================
+   Leaflet overrides
+   ============================================================================= */
+.leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.14);
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.12) !important;
+}
+
+.leaflet-control-zoom a {
+  border-radius: 6px !important;
+  color: #1c1c1a !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+
+/* =============================================================================
+   Responsive breakpoints
+   ============================================================================= */
+
+/* Tablet and up */
+@media (min-width: 768px) {
+  .map-title-heading { font-size: 17px; }
+  .map-title-sub     { font-size: 13px; }
+  .layer-toggle      { font-size: 12px; }
+  .legend            { font-size: 12px; bottom: 32px; }
+  .legend-item       { font-size: 12px; }
+  .legend-swatch     { width: 16px; height: 16px; }
+}
+
+/* Mobile landscape - hide legend to save space */
+@media (max-height: 500px) {
+  .legend            { display: none; }
+  .map-title         { padding: 8px 12px; }
+  .map-title-icon    { font-size: 22px; }
+  .map-title-heading { font-size: 13px; }
+  .map-title-sub     { font-size: 11px; }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .map-title         { padding: 10px 12px; gap: 8px; }
+  .map-title-icon    { font-size: 22px; }
+  .map-title-heading { font-size: 14px; }
+  .map-title-sub     { font-size: 11px; }
+  .layer-toggle      { padding: 8px 10px; font-size: 12px; }
+  .legend            { padding: 8px 10px; }
+}
