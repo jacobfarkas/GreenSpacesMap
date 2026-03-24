@@ -229,12 +229,12 @@ fetch('data/nta_scores_flagship_walk.geojson')
 
     L.geoJSON(data, {
       style: {
-        fillColor:   '#2d6a4f',
-        fillOpacity: 0.85,
-        color:       '#1a3d2b',
-        weight:      1,
-        pane:        'parksPane'
-      },
+  fillColor:   '#2d6a4f',
+  fillOpacity: 0.9,
+  color:       '#d4a017',  // gold border
+  weight:      2.5,
+  pane:        'parksPane'
+}
       onEachFeature: function(f, layer) {
         layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
       }
