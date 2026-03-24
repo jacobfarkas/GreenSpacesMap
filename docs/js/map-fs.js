@@ -234,7 +234,7 @@ fetch('data/nta_scores_flagship_walk.geojson')
   color:       '#d4a017',  // gold border
   weight:      2.5,
   pane:        'parksPane'
-}
+},
       onEachFeature: function(f, layer) {
         layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
       }
