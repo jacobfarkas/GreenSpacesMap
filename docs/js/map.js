@@ -196,11 +196,15 @@ fetch('data/nta_scores.geojson')
       style: function(f) {
         return ntaStyleOutline();
       },
-      interactive: false,
       onEachFeature: function(f, layer) {
         layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(ntaLayer);
+
+    // Disable click events on NTA since hex is visible on load
+    ntaGeoJSON.eachLayer(function(layer) {
+      layer.off('click');
+    });
 
     // 2. Hex scores
     return fetch('data/hex_scores_parks.geojson');
