@@ -18,8 +18,8 @@
 //   parkCellMap          -> in-memory lookup of park name to cell index
 //
 // NTA layer behavior:
-//   - When hex layer is visible: NTA shows white outline only, non-interactive
-//   - When hex layer is hidden: NTA shows grade color fill, interactive
+//   - When hex visible: ntaPane has pointerEvents=none (clicks pass through to hex)
+//   - When hex hidden: ntaPane has pointerEvents=auto (clicks open NTA popup)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -48,6 +48,11 @@ var map = L.map('map', {
 map.createPane('parksPane');
 map.getPane('parksPane').style.zIndex = 450;
 
+// Custom pane for NTA - below hex, pointer events off when hex visible
+map.createPane('ntaPane');
+map.getPane('ntaPane').style.zIndex = 200;
+map.getPane('ntaPane').style.pointerEvents = 'none';
+
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
   subdomains:  'abcd',
@@ -69,7 +74,6 @@ var ntaGeoJSON = null;
 
 // -----------------------------------------------------------------------------
 // NTA style functions
-// Two modes: outline-only (when hex visible) and colored fill (when hex hidden)
 // -----------------------------------------------------------------------------
 function ntaStyleOutline() {
   return {
@@ -77,7 +81,8 @@ function ntaStyleOutline() {
     fillOpacity: 0,
     color:       '#ffffff',
     weight:      1.5,
-    opacity:     0.8
+    opacity:     0.8,
+    pane:        'ntaPane'
   };
 }
 
@@ -87,24 +92,26 @@ function ntaStyleColored(grade) {
     fillOpacity: 0.5,
     color:       '#ffffff',
     weight:      1.5,
-    opacity:     0.8
+    opacity:     0.8,
+    pane:        'ntaPane'
   };
 }
 
 function updateNtaStyle() {
   if (!ntaGeoJSON) return;
-  ntaGeoJSON.eachLayer(function(layer) {
-    if (hexVisible) {
+
+  if (hexVisible) {
+    map.getPane('ntaPane').style.pointerEvents = 'none';
+    ntaGeoJSON.eachLayer(function(layer) {
       layer.setStyle(ntaStyleOutline());
-      layer.options.interactive = false;
-      layer.off('click');
-    } else {
+    });
+  } else {
+    map.getPane('ntaPane').style.pointerEvents = 'auto';
+    ntaGeoJSON.eachLayer(function(layer) {
       var grade = layer.feature.properties.grade;
       layer.setStyle(ntaStyleColored(grade));
-      layer.options.interactive = true;
-      layer.on('click', function(e) { layer.openPopup(); });
-    }
-  });
+    });
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -184,10 +191,7 @@ function golfPopup(p) {
 
 // -----------------------------------------------------------------------------
 // Data loading
-// NTA loads first but non-interactive, hex loads second and forces NTA redraw
 // -----------------------------------------------------------------------------
-
-// 1. NTA scores - non-interactive on load since hex will be visible
 fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -196,17 +200,12 @@ fetch('data/nta_scores.geojson')
       style: function(f) {
         return ntaStyleOutline();
       },
+      pane: 'ntaPane',
       onEachFeature: function(f, layer) {
         layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(ntaLayer);
 
-    // Disable click events on NTA since hex is visible on load
-    ntaGeoJSON.eachLayer(function(layer) {
-      layer.off('click');
-    });
-
-    // 2. Hex scores
     return fetch('data/hex_scores_parks.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -229,12 +228,6 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(hexLayer);
 
-    // Force NTA redraw after hex is loaded so white outlines are visible
-    setTimeout(function() {
-      if (ntaGeoJSON) ntaGeoJSON.setStyle(ntaStyleOutline());
-    }, 100);
-
-    // 3. Parks display
     return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -253,7 +246,6 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(parksLayer);
 
-    // 4. Golf courses
     return fetch('data/golf_courses.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -279,7 +271,6 @@ fetch('data/nta_scores.geojson')
 
 // -----------------------------------------------------------------------------
 // Layer toggle event listeners
-// NTA style and interactivity switches based on hex visibility
 // -----------------------------------------------------------------------------
 document.getElementById('toggle-nta').addEventListener('change', function() {
   if (this.checked) {
