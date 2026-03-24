@@ -268,11 +268,17 @@ function loadNtaLayer(data) {
     style: function(f) {
       return hexVisible ? ntaStyleOutline() : ntaStyleColored(f.properties.grade);
     },
-    interactive: !hexVisible,
     onEachFeature: function(f, layer) {
       layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
     }
   }).addTo(ntaLayer);
+
+  // If hex is visible on load, disable click events on NTA
+  if (hexVisible) {
+    ntaGeoJSON.eachLayer(function(layer) {
+      layer.off('click');
+    });
+  }
 }
 
 // -----------------------------------------------------------------------------
