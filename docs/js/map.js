@@ -9,10 +9,10 @@
 //   4. Golf courses     — excluded from scoring, pale green overlay
 //
 // Data files (relative to docs/):
-//   ../data-prep/processed/nta_scores.geojson
-//   ../data-prep/processed/hex_scores_parks.geojson
-//   ../data-prep/processed/parks_display.geojson
-//   ../data-prep/raw/golf_courses.geojson
+//   ../data/nta_scores.geojson
+//   ../data/hex_scores_parks.geojson
+//   ../data/parks_display.geojson
+//   ../data/golf_courses.geojson
 // =============================================================================
 
 // -----------------------------------------------------------------------------
