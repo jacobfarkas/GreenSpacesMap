@@ -16,23 +16,25 @@
 //   H3 JS library        -> converts lat/lng to H3 res 10 cell index
 //   hexFeatureMap        -> in-memory lookup of cell index to score data
 //   parkCellMap          -> in-memory lookup of park name to cell index
+//
+// NTA layer behavior:
+//   - When hex layer is visible: NTA shows white outline only (no fill)
+//   - When hex layer is hidden: NTA shows grade color fill
 // =============================================================================
 
 // -----------------------------------------------------------------------------
 // Grade color config
-// A-F scale matching the scoring rubric in 02_score.R
 // -----------------------------------------------------------------------------
 var GRADE_COLORS = {
-  'A': '#1d6fa4',  // blue        - under 5 min walk
-  'B': '#74b3ce',  // light blue  - 5 to 10 min walk
-  'C': '#f5c842',  // yellow      - 10 to 15 min walk
-  'D': '#f07c1e',  // orange      - 15 to 20 min walk
-  'F': '#d7263d'   // red         - over 20 min walk
+  'A': '#1d6fa4',
+  'B': '#74b3ce',
+  'C': '#f5c842',
+  'D': '#f07c1e',
+  'F': '#d7263d'
 };
 
 // -----------------------------------------------------------------------------
 // Map initialisation
-// Center on NYC, zoom to show all 5 boroughs
 // -----------------------------------------------------------------------------
 var map = L.map('map', {
   center:       [40.7484, -73.9857],
@@ -42,8 +44,7 @@ var map = L.map('map', {
   tapTolerance: 15
 });
 
-// Create custom pane for parks so they always render above hex cells
-// regardless of layer toggle order
+// Custom pane for parks - always renders above hex cells
 map.createPane('parksPane');
 map.getPane('parksPane').style.zIndex = 450;
 
@@ -55,16 +56,55 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 // -----------------------------------------------------------------------------
 // Layer groups
-// Defined separately so layer toggles can add/remove them independently
 // -----------------------------------------------------------------------------
 var ntaLayer   = L.layerGroup().addTo(map);
 var hexLayer   = L.layerGroup().addTo(map);
 var parksLayer = L.layerGroup().addTo(map);
 
+// Track hex visibility for NTA style switching
+var hexVisible = true;
+
+// Store NTA geojson layer reference for re-styling
+var ntaGeoJSON = null;
+
 // -----------------------------------------------------------------------------
-// In-memory lookups built when hex GeoJSON loads
-// hexFeatureMap: h3_index -> feature properties (used for address search)
-// parkCellMap:   park name -> first cell index at hops 0 or 1 (used for park link)
+// NTA style functions
+// Two modes: outline-only (when hex visible) and colored fill (when hex hidden)
+// -----------------------------------------------------------------------------
+function ntaStyleOutline() {
+  return {
+    fillColor:   '#000000',
+    fillOpacity: 0,           // no fill - transparent
+    color:       '#ffffff',   // white outline
+    weight:      1.5,
+    opacity:     0.8
+  };
+}
+
+function ntaStyleColored(grade) {
+  return {
+    fillColor:   GRADE_COLORS[grade] || '#d7263d',
+    fillOpacity: 0.5,
+    color:       '#ffffff',
+    weight:      1.5,
+    opacity:     0.8
+  };
+}
+
+function updateNtaStyle() {
+  if (!ntaGeoJSON) return;
+  ntaGeoJSON.eachLayer(function(layer) {
+    if (hexVisible) {
+      layer.setStyle(ntaStyleOutline());
+    } else {
+      var grade = layer.feature.properties.grade;
+      layer.setStyle(ntaStyleColored(grade));
+    }
+  });
+}
+
+// -----------------------------------------------------------------------------
+// In-memory lookups
 // -----------------------------------------------------------------------------
 var hexFeatureMap = {};
 var parkCellMap   = {};
@@ -73,8 +113,6 @@ function buildHexLookup(data) {
   data.features.forEach(function(f) {
     if (f.properties && f.properties.h3_index) {
       hexFeatureMap[f.properties.h3_index] = f.properties;
-
-      // Store first cell found for each park at hops 0 or 1
       var pName = f.properties.nearest_park;
       var hops  = f.properties.hops;
       if (pName && (hops === 0 || hops === 1) && !parkCellMap[pName]) {
@@ -142,38 +180,30 @@ function golfPopup(p) {
 
 // -----------------------------------------------------------------------------
 // Data loading
-// Layers chained to render in correct order:
-// NTA (bottom) -> Hex -> Parks -> Golf courses (top)
-// Parks and golf courses use parksPane to stay above hex on toggle
 // -----------------------------------------------------------------------------
 
-// 1. NTA scores - neighborhood level, semi-transparent fill
+// 1. NTA scores
 fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
-    L.geoJSON(data, {
+    // Store reference so we can re-style on hex toggle
+    ntaGeoJSON = L.geoJSON(data, {
       style: function(f) {
-        return {
-          fillColor:   GRADE_COLORS[f.properties.grade] || '#d7263d',
-          fillOpacity: 0.3,
-          color:       '#ffffff',
-          weight:      1.5,
-          opacity:     0.8
-        };
+        // Initial style - outline only since hex is visible on load
+        return ntaStyleOutline();
       },
       onEachFeature: function(f, layer) {
         layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(ntaLayer);
 
-    // 2. Hex scores - cell level, on top of NTA
+    // 2. Hex scores
     return fetch('data/hex_scores_parks.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
 
-    // Build lookup maps for address search and park links
     buildHexLookup(data);
 
     L.geoJSON(data, {
@@ -191,7 +221,7 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(hexLayer);
 
-    // 3. Parks display - solid dark green, rendered in parksPane
+    // 3. Parks display
     return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -210,7 +240,7 @@ fetch('data/nta_scores.geojson')
       }
     }).addTo(parksLayer);
 
-    // 4. Golf courses - pale green overlay, also in parksPane
+    // 4. Golf courses
     return fetch('data/golf_courses.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -236,13 +266,26 @@ fetch('data/nta_scores.geojson')
 
 // -----------------------------------------------------------------------------
 // Layer toggle event listeners
+// NTA style switches based on hex visibility
 // -----------------------------------------------------------------------------
 document.getElementById('toggle-nta').addEventListener('change', function() {
-  if (this.checked) { map.addLayer(ntaLayer);   } else { map.removeLayer(ntaLayer);   }
+  if (this.checked) {
+    map.addLayer(ntaLayer);
+  } else {
+    map.removeLayer(ntaLayer);
+  }
 });
 
 document.getElementById('toggle-hex').addEventListener('change', function() {
-  if (this.checked) { map.addLayer(hexLayer);   } else { map.removeLayer(hexLayer);   }
+  if (this.checked) {
+    hexVisible = true;
+    map.addLayer(hexLayer);
+  } else {
+    hexVisible = false;
+    map.removeLayer(hexLayer);
+  }
+  // Update NTA style to reflect new hex visibility
+  updateNtaStyle();
 });
 
 document.getElementById('toggle-parks').addEventListener('change', function() {
@@ -273,20 +316,17 @@ layersOverlay.addEventListener('click', closeLayers);
 
 // -----------------------------------------------------------------------------
 // Pan to H3 cell and open its popup
-// Used by park link in result card and green dot marker click
 // -----------------------------------------------------------------------------
 function panToCell(cellIndex) {
   var props = hexFeatureMap[cellIndex];
   if (!props) return;
 
-  // Get cell center lat/lng using H3 JS
   var center = h3.cellToLatLng(cellIndex);
   var lat    = center[0];
   var lng    = center[1];
 
   map.setView([lat, lng], 16);
 
-  // Find the Leaflet layer for this cell and open its popup
   hexLayer.eachLayer(function(layer) {
     if (layer.eachLayer) {
       layer.eachLayer(function(sublayer) {
@@ -301,9 +341,6 @@ function panToCell(cellIndex) {
 
 // -----------------------------------------------------------------------------
 // Address search
-// Uses NYC GeoSearch API v2 for autocomplete
-// Converts lat/lng to H3 cell using h3-js
-// Looks up score from hexFeatureMap built at load time
 // -----------------------------------------------------------------------------
 var searchInput    = document.getElementById('search-input');
 var searchClear    = document.getElementById('search-clear');
@@ -312,17 +349,14 @@ var resultCard     = document.getElementById('result-card');
 var searchMarker   = null;
 var searchDebounce = null;
 
-// Geocode address using NYC Planning GeoSearch API v2
 function geocodeAddress(address) {
   var url = 'https://geosearch.planninglabs.nyc/v2/autocomplete?text=' +
     encodeURIComponent(address) + '&size=5';
-
   return fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(data) { return data.features || []; });
 }
 
-// Render autocomplete suggestions in dropdown
 function showSuggestions(features) {
   searchDropdown.innerHTML = '';
 
@@ -357,32 +391,23 @@ function showSuggestions(features) {
   searchDropdown.classList.add('active');
 }
 
-// Handle address selection from dropdown
 function selectResult(feature) {
-  var coords = feature.geometry.coordinates; // GeoJSON is [lng, lat]
+  var coords = feature.geometry.coordinates;
   var lng    = coords[0];
   var lat    = coords[1];
   var label  = feature.properties.label || '';
 
-  // Hide dropdown, update input
   searchDropdown.classList.remove('active');
   searchInput.value = label.split(',')[0];
   searchClear.style.display = 'block';
 
-  // Convert lat/lng to H3 res 10 cell index using h3-js
   var cellIndex = h3.latLngToCell(lat, lng, 10);
+  var props     = hexFeatureMap[cellIndex];
 
-  // Look up pre-scored properties from in-memory map
-  var props = hexFeatureMap[cellIndex];
-
-  // Pan and zoom map to address
   map.setView([lat, lng], 16);
 
-  // Remove previous search marker
   if (searchMarker) { map.removeLayer(searchMarker); }
 
-  // Place marker at searched address
-  // Clicking the marker opens the hex cell popup
   searchMarker = L.circleMarker([lat, lng], {
     radius:      8,
     fillColor:   '#2d6a4f',
@@ -398,7 +423,6 @@ function selectResult(feature) {
   showResultCard(label, props);
 }
 
-// Populate and show result card
 function showResultCard(address, props) {
   var parts    = address.split(',');
   var mainAddr = parts[0] || address;
@@ -411,7 +435,6 @@ function showResultCard(address, props) {
     var parkName = props.nearest_park || 'Nearby park';
     var parkCell = parkCellMap[parkName];
 
-    // Park label + clickable link
     var parkEl = document.getElementById('result-park');
     parkEl.innerHTML =
       '<span style="font-size:11px;color:#888;display:block;margin-bottom:2px">' +
@@ -421,7 +444,6 @@ function showResultCard(address, props) {
         '🌳 ' + parkName +
       '</a>';
 
-    // Attach click handler to park link
     var parkLink = parkEl.querySelector('.park-link');
     if (parkLink && parkCell) {
       parkLink.addEventListener('click', function(e) {
@@ -443,7 +465,6 @@ function showResultCard(address, props) {
   resultCard.classList.add('open');
 }
 
-// Debounced input handler - fires geocode after 300ms pause
 searchInput.addEventListener('input', function() {
   var val = this.value.trim();
   searchClear.style.display = val ? 'block' : 'none';
@@ -460,7 +481,6 @@ searchInput.addEventListener('input', function() {
   }, 300);
 });
 
-// Clear search - reset all search state
 searchClear.addEventListener('click', function() {
   searchInput.value = '';
   searchClear.style.display = 'none';
@@ -472,12 +492,10 @@ searchClear.addEventListener('click', function() {
   }
 });
 
-// Close dropdown on map click
 map.on('click', function() {
   searchDropdown.classList.remove('active');
 });
 
-// Close result card and dropdown on map drag
 map.on('dragstart', function() {
   resultCard.classList.remove('open');
   searchDropdown.classList.remove('active');
