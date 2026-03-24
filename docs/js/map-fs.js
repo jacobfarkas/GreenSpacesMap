@@ -15,8 +15,8 @@
 //   subway -> hex_scores_flagship_subway.geojson + nta_scores_flagship_subway.geojson
 //
 // NTA layer behavior:
-//   - When hex visible: NTA pane has pointerEvents=none (clicks pass through to hex)
-//   - When hex hidden: NTA pane has pointerEvents=auto (clicks open NTA popup)
+//   - When hex visible: ntaPane pointerEvents=none (clicks pass through to hex)
+//   - When hex hidden: ntaPane pointerEvents=auto (clicks open NTA popup)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -45,10 +45,10 @@ var map = L.map('map', {
 map.createPane('parksPane');
 map.getPane('parksPane').style.zIndex = 450;
 
-// Custom pane for NTA - below hex, pointer events controlled by hex visibility
+// Custom pane for NTA - visible but no pointer events when hex is on
 map.createPane('ntaPane');
 map.getPane('ntaPane').style.zIndex = 200;
-map.getPane('ntaPane').style.pointerEvents = 'none'; // no clicks on load since hex visible
+map.getPane('ntaPane').style.pointerEvents = 'none';
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
@@ -101,15 +101,12 @@ function ntaStyleColored(grade) {
 
 function updateNtaStyle() {
   if (!ntaGeoJSON) return;
-
   if (hexVisible) {
-    // Hex is on — NTA outline only, no pointer events
     map.getPane('ntaPane').style.pointerEvents = 'none';
     ntaGeoJSON.eachLayer(function(layer) {
       layer.setStyle(ntaStyleOutline());
     });
   } else {
-    // Hex is off — NTA colored fill, pointer events on
     map.getPane('ntaPane').style.pointerEvents = 'auto';
     ntaGeoJSON.eachLayer(function(layer) {
       var grade = layer.feature.properties.grade;
@@ -164,10 +161,10 @@ function hexPopupWalk(p) {
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
   var routeType   = p.route_type || '';
-  var routeLabel  = routeType === 'transfer'      ? ' (1 transfer)'   :
-                    routeType === 'direct'         ? ' (direct)'       :
-                    routeType === 'at_park'        ? ' (at park)'      :
-                    routeType === 'walk_fallback'  ? ' (walk faster)'  : '';
+  var routeLabel  = routeType === 'transfer' ? ' (1 transfer)' :
+                    routeType === 'direct'   ? ' (direct)' :
+                    routeType === 'at_park'  ? ' (at park)' :
+                    routeType === 'walk_fallback' ? ' (walk faster)' : '';
 
   return (
     '<div class="park-popup">' +
