@@ -13,6 +13,10 @@
 // Modes:
 //   walk   -> hex_scores_flagship_walk.geojson + nta_scores_flagship_walk.geojson
 //   subway -> hex_scores_flagship_subway.geojson + nta_scores_flagship_subway.geojson
+//
+// NTA layer behavior:
+//   - When hex visible: NTA shows outline only, non-interactive (clicks pass to hex)
+//   - When hex hidden: NTA shows grade color fill, interactive (clicks open popup)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -93,9 +97,13 @@ function updateNtaStyle() {
   ntaGeoJSON.eachLayer(function(layer) {
     if (hexVisible) {
       layer.setStyle(ntaStyleOutline());
+      layer.options.interactive = false;
+      layer.off('click');
     } else {
       var grade = layer.feature.properties.grade;
       layer.setStyle(ntaStyleColored(grade));
+      layer.options.interactive = true;
+      layer.on('click', function(e) { layer.openPopup(); });
     }
   });
 }
@@ -146,10 +154,10 @@ function hexPopupWalk(p) {
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
   var routeType   = p.route_type || '';
-  var routeLabel  = routeType === 'transfer' ? ' (1 transfer)' :
-                    routeType === 'direct'   ? ' (direct)' :
-                    routeType === 'at_park'  ? ' (at park)' :
-                    routeType === 'walk_fallback' ? ' (walk faster)' : '';
+  var routeLabel  = routeType === 'transfer'      ? ' (1 transfer)'   :
+                    routeType === 'direct'         ? ' (direct)'       :
+                    routeType === 'at_park'        ? ' (at park)'      :
+                    routeType === 'walk_fallback'  ? ' (walk faster)'  : '';
 
   return (
     '<div class="park-popup">' +
@@ -260,6 +268,7 @@ function loadNtaLayer(data) {
     style: function(f) {
       return hexVisible ? ntaStyleOutline() : ntaStyleColored(f.properties.grade);
     },
+    interactive: !hexVisible,
     onEachFeature: function(f, layer) {
       layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
     }
@@ -277,7 +286,7 @@ function checkAllLoaded() {
   }
 }
 
-// Load walk hex
+// Load walk hex first, then NTA, then subway in background, then parks
 fetch('data/hex_scores_flagship_walk.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -292,7 +301,6 @@ fetch('data/hex_scores_flagship_walk.geojson')
     loadNtaLayer(data);
     dataLoaded.walk = true;
     checkAllLoaded();
-    // Load subway data in background
     return fetch('data/hex_scores_flagship_subway.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -305,7 +313,6 @@ fetch('data/hex_scores_flagship_walk.geojson')
     subwayNtaData = data;
     dataLoaded.subway = true;
     checkAllLoaded();
-    // Load parks
     return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -385,9 +392,6 @@ document.getElementById('toggle-parks').addEventListener('change', function() {
 
 // -----------------------------------------------------------------------------
 // Mode switcher buttons
-// These need to exist in index-fs.html as:
-// <button id="mode-walk" class="mode-btn active">🚶 Walk</button>
-// <button id="mode-subway" class="mode-btn">🚇 Subway</button>
 // -----------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function() {
   var modeWalk   = document.getElementById('mode-walk');
@@ -528,7 +532,7 @@ function showResultCard(address, props) {
   if (props) {
     var isSubway  = currentMode === 'subway';
     var parkName  = isSubway
-      ? (props.nearest_station || 'Nearby station')
+      ? (props.nearest_station  || 'Nearby station')
       : (props.nearest_flagship || 'Nearby flagship park');
     var parkCell  = parkCellMap[parkName];
     var timeLabel = isSubway
