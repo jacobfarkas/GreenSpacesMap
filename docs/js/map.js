@@ -200,7 +200,7 @@ fetch('data/nta_scores.geojson')
     // Force redraw to ensure NTA renders on initial load
     setTimeout(function() {
       ntaGeoJSON.setStyle(ntaStyleOutline());
-    }, 100);
+    }, 500);
 
     // 2. Hex scores
     return fetch('data/hex_scores_parks.geojson');
