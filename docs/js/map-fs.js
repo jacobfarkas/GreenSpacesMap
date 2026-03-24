@@ -47,7 +47,7 @@ map.getPane('parksPane').style.zIndex = 450;
 
 // Custom pane for NTA - visible but no pointer events when hex is on
 map.createPane('ntaPane');
-map.getPane('ntaPane').style.zIndex = 200;
+map.getPane('ntaPane').style.zIndex = 250;
 map.getPane('ntaPane').style.pointerEvents = 'none';
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
