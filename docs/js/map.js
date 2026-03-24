@@ -84,10 +84,17 @@ function buildHexLookup(data) {
 // Popup builders
 // -----------------------------------------------------------------------------
 function hexPopup(p) {
+  var parkName = p.nearest_park || 'Nearby park';
+  var parkCell = parkCellMap[parkName];
+  var parkLink = parkCell
+    ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
+    : '🌳 ' + parkName;
+
   return (
     '<div class="park-popup">' +
-      '<div class="park-name">'  + (p.nearest_park || 'Nearby park') + '</div>' +
-      '<div class="nta-name">Neighborhood: ' + (p.nta || '') + '</div>' +
+      '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Closest park nearby</div>' +
+      parkLink +
       '<div class="cell-id">Cell: ' + (p.h3_index || '') + '</div>' +
       '<div class="walk-time">~' + (p.walk_mins || '') + ' min walk</div>' +
       '<div class="grade">' + (p.grade || '') + '</div>' +
