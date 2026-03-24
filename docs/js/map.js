@@ -257,7 +257,7 @@ var searchDebounce = null;
 
 // Geocode address using NYC Planning GeoSearch API
 function geocodeAddress(address) {
-  var url = 'https://geosearch.planninglabs.nyc/v1/search?text=' +
+  var url = 'https://geosearch.planninglabs.nyc/v2/autocomplete?text=' +
     encodeURIComponent(address) + '&size=5';
   return fetch(url)
     .then(function(r) { return r.json(); })
