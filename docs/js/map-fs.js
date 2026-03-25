@@ -144,7 +144,7 @@ function hexPopupWalk(p) {
   var parkName = p.nearest_flagship || 'Nearby flagship park';
   var parkCell = parkCellMap[parkName];
   var parkLink = parkCell
-    ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
+    ? '<span class="park-link">🌳 ' + parkName + '</span>'
     : '🌳 ' + parkName;
 
   return (
@@ -160,10 +160,11 @@ function hexPopupWalk(p) {
 
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
+  var parkName    = p.nearest_flagship || 'Nearby flagship park';
   var routeType   = p.route_type || '';
-  var routeLabel  = routeType === 'transfer' ? ' (1 transfer)' :
-                    routeType === 'direct'   ? ' (direct)' :
-                    routeType === 'at_park'  ? ' (at park)' :
+  var routeLabel  = routeType === 'transfer'     ? ' (1 transfer)'  :
+                    routeType === 'direct'        ? ' (direct)'      :
+                    routeType === 'at_park'       ? ' (at park)'     :
                     routeType === 'walk_fallback' ? ' (walk faster)' : '';
 
   return (
@@ -171,6 +172,8 @@ function hexPopupSubway(p) {
       '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
       '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Nearest subway station</div>' +
       '<div style="font-size:13px;font-weight:500;color:#2d6a4f">🚇 ' + stationName + routeLabel + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Nearest flagship park</div>' +
+      '<div style="font-size:13px;font-weight:500;color:#2d6a4f">🌳 ' + parkName + '</div>' +
       '<div class="walk-time">~' + (p.total_mins || '') + ' min total</div>' +
       '<div class="grade">' + (p.grade || '') + '</div>' +
     '</div>'
@@ -191,21 +194,23 @@ function ntaPopup(p) {
 }
 
 function parkPopup(p) {
+  var acres = p.area_sqm ? Math.round(p.area_sqm / 4047 * 10) / 10 : '';
   return (
     '<div class="parks-popup">' +
       '<div class="park-name">' + (p.park_name || '') + '</div>' +
       '<div class="park-meta">' + (p.borough || '') + '</div>' +
-      '<div class="park-meta">' + Math.round(p.area_sqm / 10000 * 10) / 10 + ' ha</div>' +
+      (acres ? '<div class="park-meta">' + acres + ' acres</div>' : '') +
     '</div>'
   );
 }
 
 function flagshipPopup(p) {
+  var acres = p.acres ? Math.round(p.acres * 10) / 10 : '';
   return (
     '<div class="parks-popup">' +
       '<div class="park-name">⭐ ' + (p.park_name || '') + '</div>' +
       '<div class="park-meta">' + (p.borough || '') + '</div>' +
-      '<div class="park-meta">' + Math.round(p.acres * 10) / 10 + ' acres</div>' +
+      (acres ? '<div class="park-meta">' + acres + ' acres</div>' : '') +
     '</div>'
   );
 }
