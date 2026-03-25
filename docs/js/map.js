@@ -142,50 +142,30 @@ function hexPopup(p) {
   var parkName = p.nearest_park || 'Nearby park';
   var parkCell = parkCellMap[parkName];
   var parkLink = parkCell
-    ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
+    ? '<a>🌳 ' + parkName + '</a>'
     : '🌳 ' + parkName;
 
   return (
-    '<div class="park-popup">' +
-      '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Closest park nearby</div>' +
-      parkLink +
-      '<div class="cell-id">Cell: ' + (p.h3_index || '') + '</div>' +
-      '<div class="walk-time">~' + (p.walk_mins || '') + ' min walk</div>' +
-      '<div class="grade">' + (p.grade || '') + '</div>' +
-    '</div>'
+    ''
   );
 }
 
 function ntaPopup(p) {
   return (
-    '<div class="nta-popup">' +
-      '<div class="nta-name">' + (p.nta || '') + '</div>' +
-      '<div class="nta-meta">Cells scored: ' + (p.cell_count || '') + '</div>' +
-      '<div class="nta-meta">A+B grade cells: ' + (p.pct_ab || 0) + '%</div>' +
-      '<div class="nta-meta">A grade cells: ' + (p.pct_a || 0) + '%</div>' +
-      '<div class="nta-meta">F grade cells: ' + (p.pct_f || 0) + '%</div>' +
-      '<div class="nta-grade">Neighborhood grade: ' + (p.grade || '') + '</div>' +
-    '</div>'
+    ''
   );
 }
 
 function parkPopup(p) {
+  var acres = p.area_sqm ? Math.round(p.area_sqm / 4047 * 10) / 10 : '';
   return (
-    '<div class="parks-popup">' +
-      '<div class="park-name">' + (p.park_name || '') + '</div>' +
-      '<div class="park-meta">' + (p.borough || '') + '</div>' +
-      '<div class="park-meta">' + Math.round(p.area_sqm / 10000 * 10) / 10 + ' ha</div>' +
-    '</div>'
+    ''
   );
 }
 
 function golfPopup(p) {
   return (
-    '<div class="parks-popup">' +
-      '<div class="park-name">' + (p.golf_name || 'Golf Course') + '</div>' +
-      '<div class="park-meta">Golf course — not public access</div>' +
-    '</div>'
+    ''
   );
 }
 
