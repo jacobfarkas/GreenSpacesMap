@@ -160,7 +160,10 @@ function hexPopupWalk(p) {
 
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
-  var parkName    = p.nearest_flagship || 'Nearby flagship park';
+  var walkProps   = walkHexData ? walkHexData.features.find(function(f) {
+    return f.properties.h3_index === p.h3_index;
+  }) : null;
+  var parkName    = (walkProps && walkProps.properties.nearest_flagship) || 'Nearby flagship park';
   var routeType   = p.route_type || '';
   var routeLabel  = routeType === 'transfer'     ? ' (1 transfer)'  :
                     routeType === 'direct'        ? ' (direct)'      :
