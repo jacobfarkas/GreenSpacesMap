@@ -146,33 +146,36 @@ function hexPopupWalk(p) {
   var parkLink = parkCell
     ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
     : '🌳 ' + parkName;
-
   return (
     '<div class="park-popup">' +
-      '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Closest flagship park nearby</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px">Closest flagship park nearby</div>' +
       parkLink +
-      '<div class="walk-time">~' + (p.walk_mins || '') + ' min walk</div>' +
-      '<div class="grade">' + (p.grade || '') + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.walk_mins || '') + ' min walk</div>' +
+      '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
+      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
 
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
+  var parkName    = p.nearest_flagship || 'Nearby flagship park';
   var routeType   = p.route_type || '';
-  var routeLabel  = routeType === 'transfer' ? ' (1 transfer)' :
-                    routeType === 'direct'   ? ' (direct)' :
-                    routeType === 'at_park'  ? ' (at park)' :
+  var routeLabel  = routeType === 'transfer'     ? ' (1 transfer)'  :
+                    routeType === 'direct'        ? ' (direct)'      :
+                    routeType === 'at_park'       ? ' (at park)'     :
                     routeType === 'walk_fallback' ? ' (walk faster)' : '';
-
   return (
     '<div class="park-popup">' +
-      '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Nearest subway station</div>' +
-      '<div style="font-size:13px;font-weight:500;color:#2d6a4f">🚇 ' + stationName + routeLabel + '</div>' +
-      '<div class="walk-time">~' + (p.total_mins || '') + ' min total</div>' +
-      '<div class="grade">' + (p.grade || '') + '</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px">Closest flagship park nearby</div>' +
+      '<div style="font-size:13px;font-weight:500;color:#2d6a4f;margin-bottom:6px">🌳 ' + parkName + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px">Nearest subway station</div>' +
+      '<div style="font-size:13px;font-weight:500;color:#2d6a4f;margin-bottom:6px">🚇 ' + stationName + routeLabel + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.total_mins || '') + ' min travel time</div>' +
+      '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
+      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
@@ -180,32 +183,32 @@ function hexPopupSubway(p) {
 function ntaPopup(p) {
   return (
     '<div class="nta-popup">' +
-      '<div class="nta-name">' + (p.nta || '') + '</div>' +
-      '<div class="nta-meta">Cells scored: ' + (p.cell_count || '') + '</div>' +
-      '<div class="nta-meta">A+B grade cells: ' + (p.pct_ab || 0) + '%</div>' +
-      '<div class="nta-meta">A grade cells: ' + (p.pct_a || 0) + '%</div>' +
-      '<div class="nta-meta">F grade cells: ' + (p.pct_f || 0) + '%</div>' +
-      '<div class="nta-grade">Neighborhood grade: ' + (p.grade || '') + '</div>' +
+      '<div style="font-weight:700;font-size:15px;margin-bottom:8px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-bottom:6px">Cells scored: ' + (p.cell_count || '') + '</div>' +
+      '<div style="font-weight:700;font-size:12px;margin-bottom:2px">Grade</div>' +
+      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
 
 function parkPopup(p) {
+  var acres = p.area_sqm ? Math.round(p.area_sqm / 4047 * 10) / 10 : '';
   return (
     '<div class="parks-popup">' +
-      '<div class="park-name">' + (p.park_name || '') + '</div>' +
-      '<div class="park-meta">' + (p.borough || '') + '</div>' +
-      '<div class="park-meta">' + Math.round(p.area_sqm / 10000 * 10) / 10 + ' ha</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (p.park_name || '') + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-bottom:2px">Park</div>' +
+      '<div style="font-size:12px;color:#555">Size: ' + acres + ' acres</div>' +
     '</div>'
   );
 }
 
 function flagshipPopup(p) {
+  var acres = p.acres ? Math.round(p.acres * 10) / 10 : '';
   return (
     '<div class="parks-popup">' +
-      '<div class="park-name">⭐ ' + (p.park_name || '') + '</div>' +
-      '<div class="park-meta">' + (p.borough || '') + '</div>' +
-      '<div class="park-meta">' + Math.round(p.acres * 10) / 10 + ' acres</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">⭐ ' + (p.park_name || '') + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-bottom:2px">Flagship Park</div>' +
+      '<div style="font-size:12px;color:#555">Size: ' + acres + ' acres</div>' +
     '</div>'
   );
 }
@@ -213,8 +216,8 @@ function flagshipPopup(p) {
 function golfPopup(p) {
   return (
     '<div class="parks-popup">' +
-      '<div class="park-name">' + (p.golf_name || 'Golf Course') + '</div>' +
-      '<div class="park-meta">Golf course — not public access</div>' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (p.golf_name || 'Golf Course') + '</div>' +
+      '<div style="font-size:12px;color:#555">Golf Course</div>' +
     '</div>'
   );
 }
