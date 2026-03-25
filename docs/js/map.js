@@ -62,7 +62,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 // -----------------------------------------------------------------------------
 // Layer groups
 // -----------------------------------------------------------------------------
-var ntaLayer   = L.layerGroup();
+var ntaLayer   = L.layerGroup().addTo(map);
 var hexLayer   = L.layerGroup().addTo(map);
 var parksLayer = L.layerGroup().addTo(map);
 
@@ -142,30 +142,49 @@ function hexPopup(p) {
   var parkName = p.nearest_park || 'Nearby park';
   var parkCell = parkCellMap[parkName];
   var parkLink = parkCell
-    ? '<a>🌳 ' + parkName + '</a>'
+    ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
     : '🌳 ' + parkName;
 
   return (
-    ''
+    '<div class="park-popup">' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px">Closest park nearby</div>' +
+      parkLink +
+      '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.walk_mins || '') + ' min walk</div>' +
+      '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
+      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
+    '</div>'
   );
 }
 
 function ntaPopup(p) {
   return (
-    ''
+    '<div class="nta-popup">' +
+      '<div style="font-weight:700;font-size:15px;margin-bottom:8px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-bottom:6px">Cells scored: ' + (p.cell_count || '') + '</div>' +
+      '<div style="font-weight:700;font-size:12px;margin-bottom:2px">Grade</div>' +
+      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
+    '</div>'
   );
 }
 
 function parkPopup(p) {
   var acres = p.area_sqm ? Math.round(p.area_sqm / 4047 * 10) / 10 : '';
   return (
-    ''
+    '<div class="parks-popup">' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (p.park_name || '') + '</div>' +
+      '<div style="font-size:12px;color:#555;margin-bottom:2px">Park</div>' +
+      '<div style="font-size:12px;color:#555">Size: ' + acres + ' acres</div>' +
+    '</div>'
   );
 }
 
 function golfPopup(p) {
   return (
-    ''
+    '<div class="parks-popup">' +
+      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (p.golf_name || 'Golf Course') + '</div>' +
+      '<div style="font-size:12px;color:#555">Golf Course</div>' +
+    '</div>'
   );
 }
 
