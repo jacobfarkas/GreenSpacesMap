@@ -218,16 +218,13 @@ function loadNtaLayer(data) {
 function switchMode(mode) {
   if (mode === currentMode) return;
   currentMode = mode;
-
   document.getElementById('mode-walk').classList.toggle('active',   mode === 'walk');
   document.getElementById('mode-subway').classList.toggle('active', mode === 'subway');
-
   hexLayer.clearLayers();
   ntaLayer.clearLayers();
   hexFeatureMap = {};
   parkCellMap   = {};
   ntaGeoJSON    = null;
-
   if (mode === 'walk') {
     loadHexLayer(walkHexData, 'walk');
     loadNtaLayer(walkNtaData);
@@ -236,6 +233,7 @@ function switchMode(mode) {
       loadHexLayer(subwayHexData, 'subway');
       loadNtaLayer(subwayNtaData);
     } else {
+      document.getElementById('mode-subway').textContent = '⏳ Loading...';
       fetch('data/hex_scores_flagship_subway.geojson')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -245,15 +243,16 @@ function switchMode(mode) {
         .then(function(r) { return r.json(); })
         .then(function(data) {
           subwayNtaData = data;
+          document.getElementById('mode-subway').textContent = '🚇 Subway';
           loadHexLayer(subwayHexData, 'subway');
           loadNtaLayer(subwayNtaData);
         })
         .catch(function(err) {
+          document.getElementById('mode-subway').textContent = '🚇 Subway';
           console.error('Failed to load subway data:', err);
         });
     }
   }
-
   resultCard.classList.remove('open');
 }
 
