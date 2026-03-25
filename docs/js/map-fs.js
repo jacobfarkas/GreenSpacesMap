@@ -59,7 +59,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 // -----------------------------------------------------------------------------
 // Layer groups
 // -----------------------------------------------------------------------------
-var ntaLayer      = L.layerGroup().addTo(map);
+var ntaLayer      = L.layerGroup();
 var hexLayer      = L.layerGroup().addTo(map);
 var parksLayer    = L.layerGroup().addTo(map);
 
