@@ -144,19 +144,18 @@ function hexPopup(p) {
   var parkLink = parkCell
     ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
     : '🌳 ' + parkName;
-
   return (
     '<div class="park-popup">' +
       '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + (p.nta || '') + '</div>' +
       '<div style="font-size:11px;color:#888;margin-bottom:2px">Closest park nearby</div>' +
       parkLink +
       '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.walk_mins || '') + ' min walk</div>' +
+      '<div style="font-size:10px;color:#aaa;margin-top:3px;font-family:monospace">' + (p.h3_index || '') + '</div>' +
       '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
       '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
-
 function ntaPopup(p) {
   return (
     '<div class="nta-popup">' +
