@@ -33,7 +33,7 @@ map.getPane('parksPane').style.zIndex = 450;
 
 map.createPane('ntaPane');
 map.getPane('ntaPane').style.zIndex = 250;
-map.getPane('ntaPane').style.pointerEvents = 'auto'; // NTA interactive on load
+map.getPane('ntaPane').style.pointerEvents = 'auto';
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
@@ -46,13 +46,9 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 // NTA and parks added to map on load. Hex is NOT added until user selects it.
 // -----------------------------------------------------------------------------
 var ntaLayer   = L.layerGroup().addTo(map);
-var hexLayer   = L.layerGroup();              // not added to map on load
+var hexLayer   = L.layerGroup();
 var parksLayer = L.layerGroup().addTo(map);
 
-// -----------------------------------------------------------------------------
-// State
-// hexVisible = false on load (NTA is the default view)
-// -----------------------------------------------------------------------------
 var hexVisible = false;
 var ntaGeoJSON = null;
 
@@ -173,19 +169,19 @@ function golfPopup(p) {
 
 // -----------------------------------------------------------------------------
 // Data loading
-// NTA loads first and is visible. Hex loads into memory but not added to map.
-// Parks always load and are always visible.
 // -----------------------------------------------------------------------------
+var POPUP_OPTS = { maxWidth: 280, autoPan: true, autoPanPaddingTopLeft: L.point(10, 250) };
+
 fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
     ntaGeoJSON = L.geoJSON(data, {
       style: function(f) {
-        return ntaStyleColored(f.properties.grade); // colored on load
+        return ntaStyleColored(f.properties.grade);
       },
       pane: 'ntaPane',
       onEachFeature: function(f, layer) {
-        layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(ntaPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(ntaLayer);
 
@@ -206,10 +202,9 @@ fetch('data/nta_scores.geojson')
         };
       },
       onEachFeature: function(f, layer) {
-        layer.bindPopup(hexPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(hexPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(hexLayer);
-    // hexLayer is NOT added to map here — stays hidden until user toggles
 
     return fetch('data/parks_display.geojson');
   })
@@ -224,7 +219,7 @@ fetch('data/nta_scores.geojson')
         pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
-        layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(parkPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(parksLayer);
 
@@ -241,7 +236,7 @@ fetch('data/nta_scores.geojson')
         pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
-        layer.bindPopup(golfPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(golfPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(parksLayer);
   })
