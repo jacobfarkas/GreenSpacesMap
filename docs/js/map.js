@@ -2,24 +2,8 @@
 // map.js
 // GreenSpacesMap — NYC Park Access
 //
-// Loads scored GeoJSON layers and renders them on a Leaflet map.
-// Supports address search with H3 cell lookup for park access scores.
-//
-// Data pipeline:
-//   01_download.R        -> raw data
-//   01b_osm_parks.R      -> parks_unified.geojson
-//   01c_tree_filter.R    -> parks_unified_filtered.geojson
-//   02_score.R           -> hex_scores_parks.geojson, nta_scores.geojson
-//
-// Address search tech stack:
-//   NYC GeoSearch API v2 -> geocodes address to lat/lng
-//   H3 JS library        -> converts lat/lng to H3 res 10 cell index
-//   hexFeatureMap        -> in-memory lookup of cell index to score data
-//   parkCellMap          -> in-memory lookup of park name to cell index
-//
-// NTA layer behavior:
-//   - When hex visible: ntaPane has pointerEvents=none (clicks pass through to hex)
-//   - When hex hidden: ntaPane has pointerEvents=auto (clicks open NTA popup)
+// Default state: NTA layer visible and interactive, H3 hex loaded but hidden.
+// Parks always visible. NTA/H3 are a toggle — either/or.
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -44,14 +28,12 @@ var map = L.map('map', {
   tapTolerance: 15
 });
 
-// Custom pane for parks - always renders above hex cells
 map.createPane('parksPane');
 map.getPane('parksPane').style.zIndex = 450;
 
-// Custom pane for NTA - below hex, pointer events off when hex visible
 map.createPane('ntaPane');
 map.getPane('ntaPane').style.zIndex = 250;
-map.getPane('ntaPane').style.pointerEvents = 'none';
+map.getPane('ntaPane').style.pointerEvents = 'auto'; // NTA interactive on load
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
@@ -61,15 +43,17 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 // -----------------------------------------------------------------------------
 // Layer groups
+// NTA and parks added to map on load. Hex is NOT added until user selects it.
 // -----------------------------------------------------------------------------
 var ntaLayer   = L.layerGroup().addTo(map);
-var hexLayer   = L.layerGroup().addTo(map);
+var hexLayer   = L.layerGroup();              // not added to map on load
 var parksLayer = L.layerGroup().addTo(map);
 
-// Track hex visibility for NTA style switching
-var hexVisible = true;
-
-// Store NTA geojson layer reference for re-styling
+// -----------------------------------------------------------------------------
+// State
+// hexVisible = false on load (NTA is the default view)
+// -----------------------------------------------------------------------------
+var hexVisible = false;
 var ntaGeoJSON = null;
 
 // -----------------------------------------------------------------------------
@@ -99,7 +83,6 @@ function ntaStyleColored(grade) {
 
 function updateNtaStyle() {
   if (!ntaGeoJSON) return;
-
   if (hexVisible) {
     map.getPane('ntaPane').style.pointerEvents = 'none';
     ntaGeoJSON.eachLayer(function(layer) {
@@ -156,6 +139,7 @@ function hexPopup(p) {
     '</div>'
   );
 }
+
 function ntaPopup(p) {
   return (
     '<div class="nta-popup">' +
@@ -189,14 +173,15 @@ function golfPopup(p) {
 
 // -----------------------------------------------------------------------------
 // Data loading
+// NTA loads first and is visible. Hex loads into memory but not added to map.
+// Parks always load and are always visible.
 // -----------------------------------------------------------------------------
 fetch('data/nta_scores.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
-
     ntaGeoJSON = L.geoJSON(data, {
       style: function(f) {
-        return ntaStyleOutline();
+        return ntaStyleColored(f.properties.grade); // colored on load
       },
       pane: 'ntaPane',
       onEachFeature: function(f, layer) {
@@ -208,7 +193,6 @@ fetch('data/nta_scores.geojson')
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-
     buildHexLookup(data);
 
     L.geoJSON(data, {
@@ -225,12 +209,12 @@ fetch('data/nta_scores.geojson')
         layer.bindPopup(hexPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(hexLayer);
+    // hexLayer is NOT added to map here — stays hidden until user toggles
 
     return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-
     L.geoJSON(data, {
       style: {
         fillColor:   '#2d6a4f',
@@ -248,7 +232,6 @@ fetch('data/nta_scores.geojson')
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-
     L.geoJSON(data, {
       style: {
         fillColor:   '#c8e6c9',
@@ -261,36 +244,32 @@ fetch('data/nta_scores.geojson')
         layer.bindPopup(golfPopup(f.properties), { maxWidth: 280 });
       }
     }).addTo(parksLayer);
-
   })
   .catch(function(err) {
     console.error('Error loading GeoJSON data:', err);
   });
 
 // -----------------------------------------------------------------------------
-// Layer toggle event listeners
+// NTA / H3 toggle buttons
 // -----------------------------------------------------------------------------
-document.getElementById('toggle-nta').addEventListener('change', function() {
-  if (this.checked) {
-    map.addLayer(ntaLayer);
-  } else {
-    map.removeLayer(ntaLayer);
-  }
-});
-
-document.getElementById('toggle-hex').addEventListener('change', function() {
-  if (this.checked) {
-    hexVisible = true;
-    map.addLayer(hexLayer);
-  } else {
+document.getElementById('toggle-nta-btn').addEventListener('click', function() {
+  if (hexVisible) {
     hexVisible = false;
     map.removeLayer(hexLayer);
+    updateNtaStyle();
+    document.getElementById('toggle-nta-btn').classList.add('active');
+    document.getElementById('toggle-hex-btn').classList.remove('active');
   }
-  updateNtaStyle();
 });
 
-document.getElementById('toggle-parks').addEventListener('change', function() {
-  if (this.checked) { map.addLayer(parksLayer); } else { map.removeLayer(parksLayer); }
+document.getElementById('toggle-hex-btn').addEventListener('click', function() {
+  if (!hexVisible) {
+    hexVisible = true;
+    map.addLayer(hexLayer);
+    updateNtaStyle();
+    document.getElementById('toggle-nta-btn').classList.remove('active');
+    document.getElementById('toggle-hex-btn').classList.add('active');
+  }
 });
 
 // -----------------------------------------------------------------------------
@@ -301,15 +280,8 @@ var layersPanel   = document.getElementById('layers-panel');
 var layersOverlay = document.getElementById('layers-overlay');
 var layersClose   = document.getElementById('layers-close');
 
-function openLayers() {
-  layersPanel.classList.add('open');
-  layersOverlay.classList.add('active');
-}
-
-function closeLayers() {
-  layersPanel.classList.remove('open');
-  layersOverlay.classList.remove('active');
-}
+function openLayers()  { layersPanel.classList.add('open');    layersOverlay.classList.add('active');    }
+function closeLayers() { layersPanel.classList.remove('open'); layersOverlay.classList.remove('active'); }
 
 layersBtn.addEventListener('click', openLayers);
 layersClose.addEventListener('click', closeLayers);
@@ -323,10 +295,7 @@ function panToCell(cellIndex) {
   if (!props) return;
 
   var center = h3.cellToLatLng(cellIndex);
-  var lat    = center[0];
-  var lng    = center[1];
-
-  map.setView([lat, lng], 16);
+  map.setView([center[0], center[1]], 16);
 
   hexLayer.eachLayer(function(layer) {
     if (layer.eachLayer) {
@@ -360,35 +329,23 @@ function geocodeAddress(address) {
 
 function showSuggestions(features) {
   searchDropdown.innerHTML = '';
-
-  if (features.length === 0) {
-    searchDropdown.classList.remove('active');
-    return;
-  }
-
+  if (features.length === 0) { searchDropdown.classList.remove('active'); return; }
   features.forEach(function(f) {
     var item  = document.createElement('div');
     item.className = 'dropdown-item';
-
     var label = f.properties.label || '';
     var parts = label.split(',');
     var main  = parts[0] || label;
     var sub   = parts.slice(1).join(',').trim();
-
     item.innerHTML =
       '<span class="dropdown-item-icon">📍</span>' +
       '<span class="dropdown-item-text">' +
         '<div class="dropdown-item-label">' + main + '</div>' +
         (sub ? '<div class="dropdown-item-sub">' + sub + '</div>' : '') +
       '</span>';
-
-    item.addEventListener('click', function() {
-      selectResult(f);
-    });
-
+    item.addEventListener('click', function() { selectResult(f); });
     searchDropdown.appendChild(item);
   });
-
   searchDropdown.classList.add('active');
 }
 
@@ -408,18 +365,10 @@ function selectResult(feature) {
   map.setView([lat, lng], 16);
 
   if (searchMarker) { map.removeLayer(searchMarker); }
-
   searchMarker = L.circleMarker([lat, lng], {
-    radius:      8,
-    fillColor:   '#2d6a4f',
-    fillOpacity: 1,
-    color:       'white',
-    weight:      2
+    radius: 8, fillColor: '#2d6a4f', fillOpacity: 1, color: 'white', weight: 2
   }).addTo(map);
-
-  searchMarker.on('click', function() {
-    panToCell(cellIndex);
-  });
+  searchMarker.on('click', function() { panToCell(cellIndex); });
 
   showResultCard(label, props);
 }
@@ -438,12 +387,8 @@ function showResultCard(address, props) {
 
     var parkEl = document.getElementById('result-park');
     parkEl.innerHTML =
-      '<span style="font-size:11px;color:#888;display:block;margin-bottom:2px">' +
-        'Closest park nearby' +
-      '</span>' +
-      '<a href="#" class="park-link" data-cell="' + (parkCell || '') + '">' +
-        '🌳 ' + parkName +
-      '</a>';
+      '<span style="font-size:11px;color:#888;display:block;margin-bottom:2px">Closest park nearby</span>' +
+      '<a href="#" class="park-link" data-cell="' + (parkCell || '') + '">🌳 ' + parkName + '</a>';
 
     var parkLink = parkEl.querySelector('.park-link');
     if (parkLink && parkCell) {
@@ -456,7 +401,6 @@ function showResultCard(address, props) {
     document.getElementById('result-walk').textContent  = '~' + (props.walk_mins || '') + ' min walk';
     document.getElementById('result-grade').textContent = props.grade || '';
     document.getElementById('result-grade').style.color = GRADE_COLORS[props.grade] || '#1c1c1a';
-
   } else {
     document.getElementById('result-park').innerHTML    = 'No score data for this location';
     document.getElementById('result-walk').textContent  = '';
@@ -469,17 +413,9 @@ function showResultCard(address, props) {
 searchInput.addEventListener('input', function() {
   var val = this.value.trim();
   searchClear.style.display = val ? 'block' : 'none';
-
   clearTimeout(searchDebounce);
-
-  if (val.length < 3) {
-    searchDropdown.classList.remove('active');
-    return;
-  }
-
-  searchDebounce = setTimeout(function() {
-    geocodeAddress(val).then(showSuggestions);
-  }, 300);
+  if (val.length < 3) { searchDropdown.classList.remove('active'); return; }
+  searchDebounce = setTimeout(function() { geocodeAddress(val).then(showSuggestions); }, 300);
 });
 
 searchClear.addEventListener('click', function() {
@@ -487,16 +423,10 @@ searchClear.addEventListener('click', function() {
   searchClear.style.display = 'none';
   searchDropdown.classList.remove('active');
   resultCard.classList.remove('open');
-  if (searchMarker) {
-    map.removeLayer(searchMarker);
-    searchMarker = null;
-  }
+  if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
 });
 
-map.on('click', function() {
-  searchDropdown.classList.remove('active');
-});
-
+map.on('click', function() { searchDropdown.classList.remove('active'); });
 map.on('dragstart', function() {
   resultCard.classList.remove('open');
   searchDropdown.classList.remove('active');
