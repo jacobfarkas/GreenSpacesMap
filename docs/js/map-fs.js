@@ -71,8 +71,8 @@ function ntaStyleOutline() {
   return {
     fillColor:   '#000000',
     fillOpacity: 0,
-    color:       '#ffffff',
-    weight:      1.5,
+    color:       '#666666',
+    weight:      2,
     opacity:     0.8,
     pane:        'ntaPane'
   };
