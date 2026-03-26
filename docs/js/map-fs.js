@@ -170,6 +170,7 @@ function hexPopupSubway(p) {
       '<div style="font-size:11px;color:#888;margin-bottom:2px">Nearest subway station</div>' +
       '<div style="font-size:13px;font-weight:500;color:#2d6a4f;margin-bottom:6px">🚇 ' + stationName + routeLabel + '</div>' +
       '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.total_mins || '') + ' min travel time</div>' +
+      '<div style="font-size:10px;color:#aaa;margin-top:3px;font-family:monospace">' + (p.h3_index || '') + '</div>' +
       '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
       '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
     '</div>'
