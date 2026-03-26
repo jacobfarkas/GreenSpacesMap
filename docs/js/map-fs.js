@@ -35,7 +35,7 @@ map.getPane('parksPane').style.zIndex = 450;
 
 map.createPane('ntaPane');
 map.getPane('ntaPane').style.zIndex = 250;
-map.getPane('ntaPane').style.pointerEvents = 'auto'; // NTA interactive on load
+map.getPane('ntaPane').style.pointerEvents = 'auto';
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
@@ -45,16 +45,11 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 
 // -----------------------------------------------------------------------------
 // Layer groups
-// NTA and parks added to map on load. Hex is NOT added until user selects it.
 // -----------------------------------------------------------------------------
 var ntaLayer   = L.layerGroup().addTo(map);
-var hexLayer   = L.layerGroup();              // not added to map on load
+var hexLayer   = L.layerGroup();
 var parksLayer = L.layerGroup().addTo(map);
 
-// -----------------------------------------------------------------------------
-// State
-// hexVisible = false on load (NTA is the default view)
-// -----------------------------------------------------------------------------
 var hexVisible  = false;
 var currentMode = 'walk';
 var ntaGeoJSON  = null;
@@ -63,6 +58,11 @@ var walkHexData   = null;
 var walkNtaData   = null;
 var subwayHexData = null;
 var subwayNtaData = null;
+
+// -----------------------------------------------------------------------------
+// Popup options — shared across all bindPopup calls
+// -----------------------------------------------------------------------------
+var POPUP_OPTS = { maxWidth: 280, autoPan: true, autoPanPaddingTopLeft: L.point(10, 250) };
 
 // -----------------------------------------------------------------------------
 // NTA style functions
@@ -92,13 +92,11 @@ function ntaStyleColored(grade) {
 function updateNtaStyle() {
   if (!ntaGeoJSON) return;
   if (hexVisible) {
-    // H3 mode — NTA shows outlines only, no interaction
     map.getPane('ntaPane').style.pointerEvents = 'none';
     ntaGeoJSON.eachLayer(function(layer) {
       layer.setStyle(ntaStyleOutline());
     });
   } else {
-    // NTA mode — NTA shows colored fill, fully interactive
     map.getPane('ntaPane').style.pointerEvents = 'auto';
     ntaGeoJSON.eachLayer(function(layer) {
       var grade = layer.feature.properties.grade;
@@ -235,7 +233,7 @@ function loadHexLayer(data, mode) {
       };
     },
     onEachFeature: function(f, layer) {
-      layer.bindPopup(popupFn(f.properties), { maxWidth: 280 });
+      layer.bindPopup(popupFn(f.properties), POPUP_OPTS);
     }
   }).addTo(hexLayer);
 }
@@ -248,7 +246,7 @@ function loadNtaLayer(data) {
     },
     pane: 'ntaPane',
     onEachFeature: function(f, layer) {
-      layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
+      layer.bindPopup(ntaPopup(f.properties), POPUP_OPTS);
     }
   }).addTo(ntaLayer);
 }
@@ -272,18 +270,13 @@ function switchMode(mode) {
   if (mode === 'walk') {
     loadHexLayer(walkHexData, 'walk');
     loadNtaLayer(walkNtaData);
-    // Restore correct layer visibility after reload
-    if (hexVisible) {
-      map.addLayer(hexLayer);
-    }
+    if (hexVisible) { map.addLayer(hexLayer); }
     updateNtaStyle();
   } else {
     if (subwayHexData && subwayNtaData) {
       loadHexLayer(subwayHexData, 'subway');
       loadNtaLayer(subwayNtaData);
-      if (hexVisible) {
-        map.addLayer(hexLayer);
-      }
+      if (hexVisible) { map.addLayer(hexLayer); }
       updateNtaStyle();
     } else {
       document.getElementById('mode-subway').textContent = '⏳ Loading...';
@@ -299,9 +292,7 @@ function switchMode(mode) {
           document.getElementById('mode-subway').textContent = '🚇 Subway';
           loadHexLayer(subwayHexData, 'subway');
           loadNtaLayer(subwayNtaData);
-          if (hexVisible) {
-            map.addLayer(hexLayer);
-          }
+          if (hexVisible) { map.addLayer(hexLayer); }
           updateNtaStyle();
         })
         .catch(function(err) {
@@ -323,13 +314,12 @@ fetch('data/hex_scores_flagship_walk.geojson')
     walkHexData = data;
     buildHexLookup(data);
     loadHexLayer(data, 'walk');
-    // hex layer loaded into hexLayer group but NOT added to map
     return fetch('data/nta_scores_flagship_walk.geojson');
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     walkNtaData = data;
-    loadNtaLayer(data); // NTA added to map and visible by default
+    loadNtaLayer(data);
     return fetch('data/parks_display.geojson');
   })
   .then(function(r) { return r.json(); })
@@ -343,7 +333,7 @@ fetch('data/hex_scores_flagship_walk.geojson')
         pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
-        layer.bindPopup(parkPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(parkPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(parksLayer);
     return fetch('data/flagship_display.geojson');
@@ -359,7 +349,7 @@ fetch('data/hex_scores_flagship_walk.geojson')
         pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
-        layer.bindPopup(flagshipPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(flagshipPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(parksLayer);
     return fetch('data/golf_courses.geojson');
@@ -375,7 +365,7 @@ fetch('data/hex_scores_flagship_walk.geojson')
         pane:        'parksPane'
       },
       onEachFeature: function(f, layer) {
-        layer.bindPopup(golfPopup(f.properties), { maxWidth: 280 });
+        layer.bindPopup(golfPopup(f.properties), POPUP_OPTS);
       }
     }).addTo(parksLayer);
   })
@@ -390,7 +380,6 @@ document.getElementById('toggle-nta-btn').addEventListener('click', function() {
   if (hexVisible) {
     hexVisible = false;
     map.removeLayer(hexLayer);
-    // NTA stays on map, just update style to colored fill
     updateNtaStyle();
     document.getElementById('toggle-nta-btn').classList.add('active');
     document.getElementById('toggle-hex-btn').classList.remove('active');
@@ -401,7 +390,6 @@ document.getElementById('toggle-hex-btn').addEventListener('click', function() {
   if (!hexVisible) {
     hexVisible = true;
     map.addLayer(hexLayer);
-    // NTA stays on map, updates to outline only
     updateNtaStyle();
     document.getElementById('toggle-nta-btn').classList.remove('active');
     document.getElementById('toggle-hex-btn').classList.add('active');
