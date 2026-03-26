@@ -291,7 +291,7 @@ body {
    ============================================================================= */
 .legend {
   position: absolute;
-  bottom: 80px;
+  bottom: 24px;
   left: 12px;
   top: auto;
   z-index: 500;
@@ -648,9 +648,9 @@ body {
   .legend-item       { font-size: 12px; }
   .legend-swatch     { width: 16px; height: 16px; }
 
-  .legend {
-    bottom: auto;
-    top: 280px;
+.legend {
+    bottom: 24px;
+    top: auto;
   }
 
   /* Hide mobile layers button */
