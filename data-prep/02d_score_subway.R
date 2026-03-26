@@ -84,6 +84,11 @@ walk_lookup <- walk_scores |>
   st_drop_geometry() |>
   select(h3_index, walk_mins)
 
+# nearest_flagship lookup: h3_index -> nearest_flagship
+walk_flagship_lookup <- walk_scores |>
+  st_drop_geometry() |>
+  select(h3_index, nearest_flagship)
+
 # Flagship parks
 flagship <- parks_raw |>
   filter(typecategory == "Flagship Park") |>
@@ -218,7 +223,6 @@ cat("  Stations with direct ride:", nrow(best_direct), "\n")
 # =============================================================================
 cat("[6/9] Computing one-transfer ride times...\n")
 
-# Valid transfer pairs from GTFS
 transfer_pairs <- transfers |>
   mutate(
     from_stop_id = str_remove(from_stop_id, "[NS]$"),
@@ -231,17 +235,14 @@ transfer_pairs <- transfers |>
 
 cat("  Valid transfer pairs:", nrow(transfer_pairs), "\n")
 
-# Stations needing transfer routing
 unscored_ids <- setdiff(all_stop_ids, best_direct$from_stop_id)
 cat("  Stations needing transfer:", length(unscored_ids), "\n")
 
-# Z -> X direct ride times
 z_to_x <- best_direct |>
   select(z_stop_id = from_stop_id,
          z_to_x_mins = median_ride_mins,
          to_x_station)
 
-# Y -> Z ride times for unscored stations
 y_to_z_rides <- map_dfr(unscored_ids, function(y_id) {
   y_trips <- stop_times_clean |>
     filter(parent_stop_id == y_id) |>
@@ -264,7 +265,6 @@ y_to_z_rides <- map_dfr(unscored_ids, function(y_id) {
 
 cat("  Y->Z pairs computed:", nrow(y_to_z_rides), "\n")
 
-# Join Y->Z with valid transfers and Z->X
 transfer_scores <- y_to_z_rides |>
   inner_join(transfer_pairs,
              by = c("z_stop_id" = "from_stop_id"),
@@ -337,25 +337,21 @@ for (i in seq_len(nrow(hex_sf_proj))) {
   
   cell <- hex_sf_proj[i, ]
   
-  # Distance to all scored stations
   dists          <- st_distance(cell, subway_with_scores) |> as.numeric()
   nearest_idx    <- which.min(dists)
   nearest_dist_m <- dists[nearest_idx]
   
-  # Walk to station
   walk_hops       <- ceiling(nearest_dist_m / 131)
   walk_to_station <- walk_mins_from_hops(walk_hops)
   
   station      <- subway_with_scores[nearest_idx, ]
   subway_total <- walk_to_station + station$median_ride_mins + WALK_FROM_X_MINS
   
-  # Walk fallback — never let subway score be worse than walking
   walk_fallback <- walk_lookup |>
     filter(h3_index == hex_cells[i]) |>
     pull(walk_mins)
   walk_fallback <- if (length(walk_fallback) == 0 || is.na(walk_fallback[1])) 999 else walk_fallback[1]
   
-  # Best of subway or walk
   if (!is.na(subway_total) && subway_total <= walk_fallback) {
     results$total_mins[i]      <- round(subway_total, 1)
     results$subway_mins[i]     <- station$median_ride_mins
@@ -384,18 +380,20 @@ cat("  Route type breakdown:\n")
 results |> count(route_type) |> print()
 
 # =============================================================================
-# 9. Join NTA names, build polygons, save
+# 9. Join NTA names, nearest_flagship, build polygons, save
 # =============================================================================
 cat("[9/9] Building polygons and saving...\n")
 
 hex_final <- hex_sf |>
   left_join(results, by = "h3_index") |>
+  left_join(walk_flagship_lookup, by = "h3_index") |>
   st_join(select(nta_residential, nta = ntaname),
           join = st_nearest_feature) |>
   mutate(
-    geometry = cell_to_polygon(h3_index) |> st_sfc(crs = 4326),
-    grade    = replace_na(grade, "F"),
-    nta      = replace_na(nta, "NYC")
+    geometry          = cell_to_polygon(h3_index) |> st_sfc(crs = 4326),
+    grade             = replace_na(grade, "F"),
+    nta               = replace_na(nta, "NYC"),
+    nearest_flagship  = replace_na(nearest_flagship, "Nearby flagship park")
   ) |>
   st_set_geometry("geometry")
 
@@ -427,7 +425,7 @@ nta_scored <- nta_residential |>
 # Save
 hex_final |>
   select(h3_index, grade, total_mins, subway_mins, walk_mins_used,
-         nearest_station, route_type, nta, geometry) |>
+         nearest_station, nearest_flagship, route_type, nta, geometry) |>
   st_set_precision(1e5) |>
   st_write("data-prep/processed/hex_scores_flagship_subway.geojson",
            delete_dsn = TRUE)
@@ -441,7 +439,7 @@ cat("\n── OUTPUT SUMMARY ─────────────────
 cat("hex_scores_flagship_subway.geojson\n")
 cat("  Features:", nrow(hex_final), "\n")
 cat("  Fields:  h3_index, grade, total_mins, subway_mins,\n")
-cat("           walk_mins_used, nearest_station, route_type, nta\n\n")
+cat("           walk_mins_used, nearest_station, nearest_flagship, route_type, nta\n\n")
 cat("nta_scores_flagship_subway.geojson\n")
 cat("  Features:", nrow(nta_scored), "\n\n")
 cat("Grade distribution (hex cells):\n")
