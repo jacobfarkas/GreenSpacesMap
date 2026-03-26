@@ -15,8 +15,8 @@
 //   subway -> hex_scores_flagship_subway.geojson + nta_scores_flagship_subway.geojson
 //
 // NTA layer behavior:
-//   - When hex visible: ntaPane pointerEvents=none (clicks pass through to hex)
-//   - When hex hidden: ntaPane pointerEvents=auto (clicks open NTA popup)
+//   - When hex visible: NTA shows outline only, non-interactive (clicks pass to hex)
+//   - When hex hidden: NTA shows grade color fill, interactive (clicks open popup)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -45,11 +45,6 @@ var map = L.map('map', {
 map.createPane('parksPane');
 map.getPane('parksPane').style.zIndex = 450;
 
-// Custom pane for NTA - visible but no pointer events when hex is on
-map.createPane('ntaPane');
-map.getPane('ntaPane').style.zIndex = 250;
-map.getPane('ntaPane').style.pointerEvents = 'none';
-
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap contributors © CARTO',
   subdomains:  'abcd',
@@ -59,13 +54,13 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
 // -----------------------------------------------------------------------------
 // Layer groups
 // -----------------------------------------------------------------------------
-var ntaLayer      = L.layerGroup();
+var ntaLayer      = L.layerGroup().addTo(map);
 var hexLayer      = L.layerGroup().addTo(map);
 var parksLayer    = L.layerGroup().addTo(map);
 
 // Track state
 var hexVisible    = true;
-var currentMode   = 'walk';
+var currentMode   = 'walk'; // 'walk' or 'subway'
 var ntaGeoJSON    = null;
 
 // Pre-loaded data for both modes
@@ -83,8 +78,7 @@ function ntaStyleOutline() {
     fillOpacity: 0,
     color:       '#ffffff',
     weight:      1.5,
-    opacity:     0.8,
-    pane:        'ntaPane'
+    opacity:     0.8
   };
 }
 
@@ -94,25 +88,24 @@ function ntaStyleColored(grade) {
     fillOpacity: 0.5,
     color:       '#ffffff',
     weight:      1.5,
-    opacity:     0.8,
-    pane:        'ntaPane'
+    opacity:     0.8
   };
 }
 
 function updateNtaStyle() {
   if (!ntaGeoJSON) return;
-  if (hexVisible) {
-    map.getPane('ntaPane').style.pointerEvents = 'none';
-    ntaGeoJSON.eachLayer(function(layer) {
+  ntaGeoJSON.eachLayer(function(layer) {
+    if (hexVisible) {
       layer.setStyle(ntaStyleOutline());
-    });
-  } else {
-    map.getPane('ntaPane').style.pointerEvents = 'auto';
-    ntaGeoJSON.eachLayer(function(layer) {
+      layer.options.interactive = false;
+      layer.off('click');
+    } else {
       var grade = layer.feature.properties.grade;
       layer.setStyle(ntaStyleColored(grade));
-    });
-  }
+      layer.options.interactive = true;
+      layer.on('click', function(e) { layer.openPopup(); });
+    }
+  });
 }
 
 // -----------------------------------------------------------------------------
@@ -146,39 +139,33 @@ function hexPopupWalk(p) {
   var parkLink = parkCell
     ? '<a href="#" class="park-link" onclick="event.preventDefault();panToCell(\'' + parkCell + '\')">🌳 ' + parkName + '</a>'
     : '🌳 ' + parkName;
+
   return (
     '<div class="park-popup">' +
-      '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + (p.nta || '') + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-bottom:2px">Closest flagship park nearby</div>' +
+      '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Closest flagship park nearby</div>' +
       parkLink +
-      '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.walk_mins || '') + ' min walk</div>' +
-      '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
-      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
+      '<div class="walk-time">~' + (p.walk_mins || '') + ' min walk</div>' +
+      '<div class="grade">' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
 
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
-  var walkProps   = walkHexData ? walkHexData.features.find(function(f) {
-    return f.properties.h3_index === p.h3_index;
-  }) : null;
-  var parkName    = (walkProps && walkProps.properties.nearest_flagship) || 'Nearby flagship park';
   var routeType   = p.route_type || '';
-  var routeLabel  = routeType === 'transfer'     ? ' (1 transfer)'  :
-                    routeType === 'direct'        ? ' (direct)'      :
-                    routeType === 'at_park'       ? ' (at park)'     :
-                    routeType === 'walk_fallback' ? ' (walk faster)' : '';
+  var routeLabel  = routeType === 'transfer'      ? ' (1 transfer)'   :
+                    routeType === 'direct'         ? ' (direct)'       :
+                    routeType === 'at_park'        ? ' (at park)'      :
+                    routeType === 'walk_fallback'  ? ' (walk faster)'  : '';
+
   return (
     '<div class="park-popup">' +
-      '<div style="font-weight:700;font-size:14px;margin-bottom:6px">' + (p.nta || '') + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-bottom:2px">Closest flagship park nearby</div>' +
-      '<div style="font-size:13px;font-weight:500;color:#2d6a4f;margin-bottom:6px">🌳 ' + parkName + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-bottom:2px">Nearest subway station</div>' +
-      '<div style="font-size:13px;font-weight:500;color:#2d6a4f;margin-bottom:6px">🚇 ' + stationName + routeLabel + '</div>' +
-      '<div style="font-size:12px;color:#555;margin-top:6px">~' + (p.total_mins || '') + ' min travel time</div>' +
-      '<div style="font-weight:700;font-size:12px;margin-top:6px;margin-bottom:2px">Grade</div>' +
-      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
+      '<div class="park-name" style="font-weight:700;font-size:14px">' + (p.nta || '') + '</div>' +
+      '<div style="font-size:11px;color:#888;margin-bottom:2px;margin-top:6px">Nearest subway station</div>' +
+      '<div style="font-size:13px;font-weight:500;color:#2d6a4f">🚇 ' + stationName + routeLabel + '</div>' +
+      '<div class="walk-time">~' + (p.total_mins || '') + ' min total</div>' +
+      '<div class="grade">' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
@@ -186,32 +173,32 @@ function hexPopupSubway(p) {
 function ntaPopup(p) {
   return (
     '<div class="nta-popup">' +
-      '<div style="font-weight:700;font-size:15px;margin-bottom:8px">' + (p.nta || '') + '</div>' +
-      '<div style="font-size:12px;color:#555;margin-bottom:6px">Cells scored: ' + (p.cell_count || '') + '</div>' +
-      '<div style="font-weight:700;font-size:12px;margin-bottom:2px">Grade</div>' +
-      '<div style="font-size:32px;font-weight:700;color:' + (GRADE_COLORS[p.grade] || '#1c1c1a') + '">' + (p.grade || '') + '</div>' +
+      '<div class="nta-name">' + (p.nta || '') + '</div>' +
+      '<div class="nta-meta">Cells scored: ' + (p.cell_count || '') + '</div>' +
+      '<div class="nta-meta">A+B grade cells: ' + (p.pct_ab || 0) + '%</div>' +
+      '<div class="nta-meta">A grade cells: ' + (p.pct_a || 0) + '%</div>' +
+      '<div class="nta-meta">F grade cells: ' + (p.pct_f || 0) + '%</div>' +
+      '<div class="nta-grade">Neighborhood grade: ' + (p.grade || '') + '</div>' +
     '</div>'
   );
 }
 
 function parkPopup(p) {
-  var acres = p.area_sqm ? Math.round(p.area_sqm / 4047 * 10) / 10 : '';
   return (
     '<div class="parks-popup">' +
-      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (p.park_name || '') + '</div>' +
-      '<div style="font-size:12px;color:#555;margin-bottom:2px">Park</div>' +
-      '<div style="font-size:12px;color:#555">Size: ' + acres + ' acres</div>' +
+      '<div class="park-name">' + (p.park_name || '') + '</div>' +
+      '<div class="park-meta">' + (p.borough || '') + '</div>' +
+      '<div class="park-meta">' + Math.round(p.area_sqm / 10000 * 10) / 10 + ' ha</div>' +
     '</div>'
   );
 }
 
 function flagshipPopup(p) {
-  var acres = p.acres ? Math.round(p.acres * 10) / 10 : '';
   return (
     '<div class="parks-popup">' +
-      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">⭐ ' + (p.park_name || '') + '</div>' +
-      '<div style="font-size:12px;color:#555;margin-bottom:2px">Flagship Park</div>' +
-      '<div style="font-size:12px;color:#555">Size: ' + acres + ' acres</div>' +
+      '<div class="park-name">⭐ ' + (p.park_name || '') + '</div>' +
+      '<div class="park-meta">' + (p.borough || '') + '</div>' +
+      '<div class="park-meta">' + Math.round(p.acres * 10) / 10 + ' acres</div>' +
     '</div>'
   );
 }
@@ -219,22 +206,25 @@ function flagshipPopup(p) {
 function golfPopup(p) {
   return (
     '<div class="parks-popup">' +
-      '<div style="font-weight:700;font-size:14px;margin-bottom:4px">' + (p.golf_name || 'Golf Course') + '</div>' +
-      '<div style="font-size:12px;color:#555">Golf Course</div>' +
+      '<div class="park-name">' + (p.golf_name || 'Golf Course') + '</div>' +
+      '<div class="park-meta">Golf course — not public access</div>' +
     '</div>'
   );
 }
 
 // -----------------------------------------------------------------------------
 // Mode switching
+// Swaps hex and NTA layers between walk and subway data
 // -----------------------------------------------------------------------------
 function switchMode(mode) {
   if (mode === currentMode) return;
   currentMode = mode;
 
+  // Update button states
   document.getElementById('mode-walk').classList.toggle('active',   mode === 'walk');
   document.getElementById('mode-subway').classList.toggle('active', mode === 'subway');
 
+  // Clear hex and NTA layers
   hexLayer.clearLayers();
   ntaLayer.clearLayers();
   hexFeatureMap = {};
@@ -248,6 +238,7 @@ function switchMode(mode) {
     loadNtaLayer(subwayNtaData);
   }
 
+  // Close result card on mode switch
   resultCard.classList.remove('open');
 }
 
@@ -277,7 +268,7 @@ function loadNtaLayer(data) {
     style: function(f) {
       return hexVisible ? ntaStyleOutline() : ntaStyleColored(f.properties.grade);
     },
-    pane: 'ntaPane',
+    interactive: !hexVisible,
     onEachFeature: function(f, layer) {
       layer.bindPopup(ntaPopup(f.properties), { maxWidth: 280 });
     }
@@ -285,7 +276,7 @@ function loadNtaLayer(data) {
 }
 
 // -----------------------------------------------------------------------------
-// Data loading
+// Data loading — load all datasets upfront then render walk mode by default
 // -----------------------------------------------------------------------------
 var dataLoaded = { walk: false, subway: false, parks: false };
 
@@ -295,6 +286,7 @@ function checkAllLoaded() {
   }
 }
 
+// Load walk hex first, then NTA, then subway in background, then parks
 fetch('data/hex_scores_flagship_walk.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
