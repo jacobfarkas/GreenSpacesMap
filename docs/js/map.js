@@ -433,6 +433,7 @@ searchClear.addEventListener('click', function() {
   if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
 });
 
+map.on('popupopen', function() { resultCard.classList.remove('open'); });
 map.on('click', function() { searchDropdown.classList.remove('active'); });
 map.on('dragstart', function() {
   resultCard.classList.remove('open');
