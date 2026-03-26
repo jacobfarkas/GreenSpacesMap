@@ -384,16 +384,25 @@ results |> count(route_type) |> print()
 # =============================================================================
 cat("[9/9] Building polygons and saving...\n")
 
+# Compute nearest flagship for ALL cells spatially (no distance limit)
+hex_proj      <- hex_sf |> st_transform(32618)
+flagship_proj <- flagship |> st_transform(32618)
+
+nearest_idx          <- st_nearest_feature(hex_proj, flagship_proj)
+all_nearest_flagship <- tibble(
+  h3_index         = hex_sf$h3_index,
+  nearest_flagship = flagship_proj$park_name[nearest_idx]
+)
+
 hex_final <- hex_sf |>
   left_join(results, by = "h3_index") |>
-  left_join(walk_flagship_lookup, by = "h3_index") |>
+  left_join(all_nearest_flagship, by = "h3_index") |>
   st_join(select(nta_residential, nta = ntaname),
           join = st_nearest_feature) |>
   mutate(
-    geometry          = cell_to_polygon(h3_index) |> st_sfc(crs = 4326),
-    grade             = replace_na(grade, "F"),
-    nta               = replace_na(nta, "NYC"),
-    nearest_flagship  = replace_na(nearest_flagship, "Nearby flagship park")
+    geometry = cell_to_polygon(h3_index) |> st_sfc(crs = 4326),
+    grade    = replace_na(grade, "F"),
+    nta      = replace_na(nta, "NYC")
   ) |>
   st_set_geometry("geometry")
 
