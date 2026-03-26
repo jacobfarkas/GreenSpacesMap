@@ -6,6 +6,12 @@
 // Parks always visible. NTA/H3 are a toggle — either/or.
 //
 // Modes: Walk and Subway, switchable via bottom mode bar.
+//
+// Loading strategy:
+//   Startup  — nta_scores_flagship_walk + parks only
+//   Walk H3  — hex_scores_flagship_walk loaded lazily on first Block Level click
+//   Subway   — nta_scores_flagship_subway loaded lazily on first Subway click
+//   Subway H3 — hex_scores_flagship_subway loaded lazily on first Block Level click in subway mode
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -60,7 +66,7 @@ var subwayHexData = null;
 var subwayNtaData = null;
 
 // -----------------------------------------------------------------------------
-// Popup options — shared across all bindPopup calls
+// Popup options
 // -----------------------------------------------------------------------------
 var POPUP_OPTS = { maxWidth: 280, autoPan: true, autoPanPaddingTopLeft: L.point(10, 250) };
 
@@ -150,10 +156,7 @@ function hexPopupWalk(p) {
 
 function hexPopupSubway(p) {
   var stationName = p.nearest_station || 'Nearby station';
-  var walkProps   = walkHexData ? walkHexData.features.find(function(f) {
-    return f.properties.h3_index === p.h3_index;
-  }) : null;
-  var parkName    = (walkProps && walkProps.properties.nearest_flagship) || 'Nearby flagship park';
+  var parkName    = p.nearest_flagship || 'Nearby flagship park';
   var routeType   = p.route_type || '';
   var routeLabel  = routeType === 'transfer'     ? ' (1 transfer)'  :
                     routeType === 'direct'        ? ' (direct)'      :
@@ -252,7 +255,7 @@ function loadNtaLayer(data) {
 }
 
 // -----------------------------------------------------------------------------
-// Mode switching — subway data loaded lazily on first switch
+// Mode switching — only NTA loaded per mode, hex lazy on Block Level click
 // -----------------------------------------------------------------------------
 function switchMode(mode) {
   if (mode === currentMode) return;
@@ -261,43 +264,38 @@ function switchMode(mode) {
   document.getElementById('mode-walk').classList.toggle('active',   mode === 'walk');
   document.getElementById('mode-subway').classList.toggle('active', mode === 'subway');
 
+  // Always reset to NTA view on mode switch
+  hexVisible = false;
   hexLayer.clearLayers();
   ntaLayer.clearLayers();
+  map.removeLayer(hexLayer);
   hexFeatureMap = {};
   parkCellMap   = {};
   ntaGeoJSON    = null;
+  document.getElementById('toggle-nta-btn').classList.add('active');
+  document.getElementById('toggle-hex-btn').classList.remove('active');
+  document.getElementById('toggle-hex-btn').textContent = 'Block Level';
 
   if (mode === 'walk') {
-    loadHexLayer(walkHexData, 'walk');
     loadNtaLayer(walkNtaData);
-    if (hexVisible) { map.addLayer(hexLayer); }
     updateNtaStyle();
   } else {
-    if (subwayHexData && subwayNtaData) {
-      loadHexLayer(subwayHexData, 'subway');
+    if (subwayNtaData) {
       loadNtaLayer(subwayNtaData);
-      if (hexVisible) { map.addLayer(hexLayer); }
       updateNtaStyle();
     } else {
       document.getElementById('mode-subway').textContent = '⏳ Loading...';
-      fetch('data/hex_scores_flagship_subway.geojson')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          subwayHexData = data;
-          return fetch('data/nta_scores_flagship_subway.geojson');
-        })
+      fetch('data/nta_scores_flagship_subway.geojson')
         .then(function(r) { return r.json(); })
         .then(function(data) {
           subwayNtaData = data;
           document.getElementById('mode-subway').textContent = '🚇 Subway';
-          loadHexLayer(subwayHexData, 'subway');
           loadNtaLayer(subwayNtaData);
-          if (hexVisible) { map.addLayer(hexLayer); }
           updateNtaStyle();
         })
         .catch(function(err) {
           document.getElementById('mode-subway').textContent = '🚇 Subway';
-          console.error('Failed to load subway data:', err);
+          console.error('Failed to load subway NTA:', err);
         });
     }
   }
@@ -306,16 +304,9 @@ function switchMode(mode) {
 }
 
 // -----------------------------------------------------------------------------
-// Data loading — walk on startup, subway lazy, parks always
+// Data loading — NTA walk + parks only on startup
 // -----------------------------------------------------------------------------
-fetch('data/hex_scores_flagship_walk.geojson')
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    walkHexData = data;
-    buildHexLookup(data);
-    loadHexLayer(data, 'walk');
-    return fetch('data/nta_scores_flagship_walk.geojson');
-  })
+fetch('data/nta_scores_flagship_walk.geojson')
   .then(function(r) { return r.json(); })
   .then(function(data) {
     walkNtaData = data;
@@ -374,7 +365,7 @@ fetch('data/hex_scores_flagship_walk.geojson')
   });
 
 // -----------------------------------------------------------------------------
-// NTA / H3 toggle buttons
+// NTA / H3 toggle buttons — hex loads lazily on first Block Level click
 // -----------------------------------------------------------------------------
 document.getElementById('toggle-nta-btn').addEventListener('click', function() {
   if (hexVisible) {
@@ -388,11 +379,40 @@ document.getElementById('toggle-nta-btn').addEventListener('click', function() {
 
 document.getElementById('toggle-hex-btn').addEventListener('click', function() {
   if (!hexVisible) {
-    hexVisible = true;
-    map.addLayer(hexLayer);
-    updateNtaStyle();
-    document.getElementById('toggle-nta-btn').classList.remove('active');
-    document.getElementById('toggle-hex-btn').classList.add('active');
+    var hexData = currentMode === 'walk' ? walkHexData : subwayHexData;
+    if (hexData) {
+      hexVisible = true;
+      map.addLayer(hexLayer);
+      updateNtaStyle();
+      document.getElementById('toggle-nta-btn').classList.remove('active');
+      document.getElementById('toggle-hex-btn').classList.add('active');
+    } else {
+      var url = currentMode === 'walk'
+        ? 'data/hex_scores_flagship_walk.geojson'
+        : 'data/hex_scores_flagship_subway.geojson';
+      document.getElementById('toggle-hex-btn').textContent = '⏳ Loading...';
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (currentMode === 'walk') {
+            walkHexData = data;
+          } else {
+            subwayHexData = data;
+          }
+          hexLayer.clearLayers();
+          loadHexLayer(data, currentMode);
+          hexVisible = true;
+          map.addLayer(hexLayer);
+          updateNtaStyle();
+          document.getElementById('toggle-hex-btn').textContent = 'Block Level';
+          document.getElementById('toggle-nta-btn').classList.remove('active');
+          document.getElementById('toggle-hex-btn').classList.add('active');
+        })
+        .catch(function(err) {
+          document.getElementById('toggle-hex-btn').textContent = 'Block Level';
+          console.error('Failed to load hex data:', err);
+        });
+    }
   }
 });
 
@@ -515,6 +535,7 @@ function selectResult(feature) {
 
   showResultCard(label, props);
 }
+
 function showResultCard(address, props) {
   var parts    = address.split(',');
   var mainAddr = parts[0] || address;
