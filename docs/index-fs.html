@@ -16,7 +16,7 @@
   <!-- Map container -->
   <div id="map"></div>
 
-  <!-- Search bar - Google Maps style -->
+  <!-- Search bar -->
   <div class="search-bar">
     <span class="search-icon">🔍</span>
     <input
@@ -33,7 +33,7 @@
   <!-- Autocomplete dropdown -->
   <div class="search-dropdown" id="search-dropdown"></div>
 
-  <!-- Result card - slides up from bottom -->
+  <!-- Result card -->
   <div class="result-card" id="result-card">
     <div class="result-card-handle"></div>
     <div class="result-card-body">
@@ -45,7 +45,7 @@
     </div>
   </div>
 
-   <!-- Banner -->
+  <!-- Banner -->
   <div class="map-title">
     <div class="map-title-icon">🌿</div>
     <div class="map-title-text">
@@ -56,7 +56,7 @@
       </div>
       <div class="map-title-sub">Mapping NYC park access</div>
       <div class="map-title-links">
-       <a href="index.html">➛ Neighborhood</a>
+        <a href="index.html">➛ Neighborhood</a>
         <a href="index-fs.html">➛ Flagship</a>
       </div>
     </div>
@@ -68,10 +68,10 @@
   </button>
 
   <!-- Mode switcher -->
-<div class="mode-bar">
-  <button id="mode-walk" class="mode-btn active">🚶 Walk</button>
-  <button id="mode-subway" class="mode-btn">🚇 Subway</button>
-</div>
+  <div class="mode-bar">
+    <button id="mode-walk" class="mode-btn active">🚶 Walk</button>
+    <button id="mode-subway" class="mode-btn">🚇 Subway</button>
+  </div>
 
   <!-- Layers panel -->
   <div class="layers-panel" id="layers-panel">
@@ -80,27 +80,16 @@
       <button class="layers-close" id="layers-close">✕</button>
     </div>
     <div class="layers-panel-body">
-      <label class="layer-item">
-        <input type="checkbox" id="toggle-nta">
+      <div class="layer-item">
         <span class="layer-label">
-          <span class="layer-name">Neighborhood Scores</span>
-          <span class="layer-desc">NTA-level park access grades</span>
+          <span class="layer-name">Score Display</span>
+          <span class="layer-desc">Toggle between neighborhood and block level</span>
         </span>
-      </label>
-      <label class="layer-item">
-        <input type="checkbox" id="toggle-hex" checked>
-        <span class="layer-label">
-          <span class="layer-name">Block Level Score</span>
-          <span class="layer-desc">H3 cell-level proximity scores</span>
-        </span>
-      </label>
-      <label class="layer-item">
-        <input type="checkbox" id="toggle-parks" checked>
-        <span class="layer-label">
-          <span class="layer-name">Parks</span>
-          <span class="layer-desc">Public park polygons</span>
-        </span>
-      </label>
+        <div class="layer-toggle-group">
+          <button class="layer-toggle-btn active" id="toggle-nta-btn">Neighborhood</button>
+          <button class="layer-toggle-btn" id="toggle-hex-btn">Block Level</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -111,31 +100,31 @@
   <div class="legend">
     <div class="legend-title">Flagship Park</div>
     <div class="legend-item">
-  <div class="legend-swatch" style="background:#1d6fa4"></div>
-  <span>A — under 12 min walk</span>
-</div>
-<div class="legend-item">
-  <div class="legend-swatch" style="background:#74b3ce"></div>
-  <span>B — 12 to 26 min walk</span>
-</div>
-<div class="legend-item">
-  <div class="legend-swatch" style="background:#f5c842"></div>
-  <span>C — 26 to 38 min walk</span>
-</div>
-<div class="legend-item">
-  <div class="legend-swatch" style="background:#f07c1e"></div>
-  <span>D — 38 to 50 min walk</span>
-</div>
-<div class="legend-item">
-  <div class="legend-swatch" style="background:#d7263d"></div>
-  <span>F — over 50 min walk</span>
-</div>
+      <div class="legend-swatch" style="background:#1d6fa4"></div>
+      <span>A — under 12 min walk</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#74b3ce"></div>
+      <span>B — 12 to 26 min walk</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#f5c842"></div>
+      <span>C — 26 to 38 min walk</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#f07c1e"></div>
+      <span>D — 38 to 50 min walk</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#d7263d"></div>
+      <span>F — over 50 min walk</span>
+    </div>
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- H3 JS library for lat/lng to H3 cell conversion -->
+  <!-- H3 JS library -->
   <script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
 
   <!-- Map logic -->
