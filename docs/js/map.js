@@ -359,11 +359,23 @@ function selectResult(feature) {
 
   map.setView([lat, lng], 16);
 
+  // Auto-switch to block level if not already
+  if (!hexVisible) {
+    hexVisible = true;
+    map.addLayer(hexLayer);
+    updateNtaStyle();
+    document.getElementById('toggle-nta-btn').classList.remove('active');
+    document.getElementById('toggle-hex-btn').classList.add('active');
+  }
+
   if (searchMarker) { map.removeLayer(searchMarker); }
   searchMarker = L.circleMarker([lat, lng], {
     radius: 8, fillColor: '#2d6a4f', fillOpacity: 1, color: 'white', weight: 2
   }).addTo(map);
-  searchMarker.on('click', function() { panToCell(cellIndex); });
+  searchMarker.on('click', function() {
+    resultCard.classList.remove('open');
+    panToCell(cellIndex);
+  });
 
   showResultCard(label, props);
 }
