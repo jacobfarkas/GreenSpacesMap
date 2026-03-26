@@ -267,16 +267,23 @@ body {
   letter-spacing: 0.01em;
 }
 
+.map-title-links {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  gap: 4px;
+}
+
 .map-title-links a {
-   font-size: 11px;
-   color: #2d6a4f;
-   text-decoration: none;
-   font-weight: 500;
+  font-size: 11px;
+  color: #2d6a4f;
+  text-decoration: none;
+  font-weight: 500;
 }
 
 .map-title-links a:hover {
-   text-decoration: underline;
-   opacity: 0.8;
+  text-decoration: underline;
+  opacity: 0.8;
 }
 
 /* =============================================================================
@@ -326,7 +333,7 @@ body {
 }
 
 /* =============================================================================
-   Mode switcher bar
+   Mode switcher bar (index-fs.html only)
    ============================================================================= */
 .mode-bar {
   position: absolute;
@@ -461,11 +468,9 @@ body {
 
 .layer-item {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   padding: 12px 0;
   border-bottom: 1px solid #f0f0ec;
-  cursor: pointer;
 }
 
 .layer-item:last-child {
@@ -484,6 +489,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin-bottom: 8px;
 }
 
 .layer-name {
@@ -495,6 +501,38 @@ body {
 .layer-desc {
   font-size: 11px;
   color: #888;
+}
+
+/* =============================================================================
+   NTA / H3 toggle buttons (index-fs.html only)
+   ============================================================================= */
+.layer-toggle-group {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.layer-toggle-btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1.5px solid #2d6a4f;
+  border-radius: 6px;
+  background: white;
+  color: #2d6a4f;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: all 0.15s;
+}
+
+.layer-toggle-btn.active {
+  background: #2d6a4f;
+  color: white;
+}
+
+.layer-toggle-btn:hover:not(.active) {
+  background: #f0f8f2;
 }
 
 /* =============================================================================
@@ -640,7 +678,7 @@ body {
   .layers-panel-title  { font-size: 13px; }
   .layers-close        { display: none; }
   .layers-panel-body   { padding: 4px 14px 8px; }
-  .layer-item          { padding: 8px 0; gap: 10px; }
+  .layer-item          { padding: 8px 0; }
   .layer-name          { font-size: 13px; }
   .layer-desc          { font-size: 11px; }
 
